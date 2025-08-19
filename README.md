@@ -1,4 +1,4 @@
-# SmartDownsample
+# smartdownsample
 
 **Efficient downsampling for image classification datasets**
 
@@ -43,12 +43,12 @@ print(f"Selected {len(selected)} images")
 | `random_seed` | `42` | Random seed for reproducible results |
 | `show_progress` | `True` | Whether to display progress bars |
 
-## Algorithm
+## Step by step
 
-**Rolling Window:** O(n) time complexity, scalable to 100k+ images. Compares candidates to recent selections using a sliding window approach. Computes perceptual hashes and uses greedy selection to maximize diversity while maintaining efficiency.
+1. Images are processed in folder-major order so files from the same folder stay together. Within each folder, paths are naturally sorted (e.g., `img1.jpg`, `img2.jpg`, `img10.jpg`) to keep related images grouped during processing.
 
-Images are automatically sorted by folder structure with natural ordering (img1, img2, img10) to keep related images together during processing.
+2. Images are compared using a rolling window. This runs in O(n) time and scales to large lists images by comparing each candidate only to a sliding window of recent selections. The method computes perceptual hashes and applies greedy selection to maximize diversity while maintaining efficiency.
 
 ## License
 
-MIT License – see LICENSE.md file.
+MIT License – see LICENSE file.
