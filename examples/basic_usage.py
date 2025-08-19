@@ -59,10 +59,9 @@ def verification_example():
     
     print(f"Selected {len(selected)} images")
     print("\nVerification plot shows:")
-    print("  - Green borders: Selected images")  
-    print("  - Red borders: Excluded images (focus)")
-    print("  - Blue borders: Context images")
-    print("  - Gray placeholders: Missing context at boundaries")
+    print("  - Left column: Excluded images (red borders)")  
+    print("  - Right column: Most similar selected images (green borders)")
+    print("  - Similarity percentage shows how similar they are")
 
 
 def camera_trap_example():

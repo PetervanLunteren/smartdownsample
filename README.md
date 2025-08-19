@@ -49,17 +49,26 @@ print(f"Selected {len(selected)} images")
 | `window_size` | `100` | Rolling window size (larger = better quality, slower) |
 | `random_seed` | `42` | Random seed for reproducible results |
 | `show_progress` | `True` | Whether to display progress bars |
-| `show_verification` | `False` | Show visual verification of excluded images with context |
+| `show_verification` | `False` | Show visual verification comparing excluded vs included images |
 
-## Step by step
+## How it works
 
-1. Images are processed in folder-major order so files from the same folder stay together. Within each folder, paths are naturally sorted (e.g., `img1.jpg`, `img2.jpg`, `img10.jpg`) to keep related images grouped during processing.
+1. **Natural sorting**: Images are processed in folder-major order with natural filename sorting (e.g., `img1.jpg`, `img2.jpg`, `img10.jpg`) to keep related images grouped.
 
-2. Images are compared using a rolling window. This runs in O(n) time and scales to large lists images by comparing each candidate only to a sliding window of recent selections. The method computes perceptual hashes and applies greedy selection to maximize diversity while maintaining efficiency.
+2. **Rolling window algorithm**: Efficient O(n) algorithm that scales to 100k+ images. Compares each candidate only to a sliding window of recent selections rather than all previous selections.
+
+3. **Diversity maximization**: Selects images that are maximally different from already-chosen images, eliminating duplicates and similar poses while preserving visual variety.
 
 ## Visual Verification
 
-Set `show_verification=True` to see a visual plot showing 10 randomly selected excluded images in their context (3 images before + excluded image + 6 images after). Green borders indicate selected images, red borders show excluded images, and blue borders mark context images. This helps verify the algorithm is working correctly by showing why certain images were excluded.
+Set `show_verification=True` to see a comprehensive visualization showing up to 18 excluded images alongside their most similar included images. Features:
+
+- **Side-by-side comparisons**: Red-bordered excluded images next to green-bordered included images
+- **Professional layout**: Clean 3×6 grid showing multiple examples 
+- **Algorithm validation**: Verify that excluded images are genuinely similar to included ones
+- **Trust building**: Visual proof that the algorithm makes sensible decisions
+
+The visualization opens automatically in your default image viewer without saving files to disk.
 
 ## License
 

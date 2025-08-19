@@ -11,8 +11,7 @@ import random
 from tqdm import tqdm
 import warnings
 from natsort import natsorted
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
+from PIL import Image
 
 warnings.filterwarnings('ignore')
 
@@ -119,7 +118,8 @@ def _select_distinct_rolling_window(
     
     # Show verification plot if requested
     if show_verification and len(valid_paths) > target_count:
-        _visualize_exclusions(valid_paths, selected_indices, random_seed)
+        from .visualization import create_verification_image
+        create_verification_image(valid_paths, selected_indices, random_seed)
     
     return selected_paths
 
@@ -205,9 +205,13 @@ def _rolling_window_selection(hash_arrays: np.ndarray, target_count: int, window
     remaining_indices.remove(first_idx)
     
     # Rolling window selection
-    iterator = tqdm(total=target_count-1, desc="Rolling window selection") if show_progress else range(target_count-1)
+    iterations_needed = max(0, target_count - 1)
+    iterator = tqdm(total=iterations_needed, desc="Rolling window selection") if show_progress else range(iterations_needed)
     
     for _ in iterator:
+        if len(remaining_indices) == 0:
+            break
+            
         # Define rolling window
         window_start = max(0, len(selected_indices) - window_size)
         window_indices = selected_indices[window_start:]
@@ -227,8 +231,9 @@ def _rolling_window_selection(hash_arrays: np.ndarray, target_count: int, window
                 max_min_distance = min_distance_to_window
                 best_candidate = candidate_idx
         
-        selected_indices.append(best_candidate)
-        remaining_indices.remove(best_candidate)
+        if best_candidate is not None:
+            selected_indices.append(best_candidate)
+            remaining_indices.remove(best_candidate)
         
         if show_progress and hasattr(iterator, 'update'):
             iterator.update(1)
@@ -237,85 +242,6 @@ def _rolling_window_selection(hash_arrays: np.ndarray, target_count: int, window
 
 
 
-
-def _visualize_exclusions(valid_paths: List[str], selected_indices: List[int], random_seed: int) -> None:
-    """Visualize excluded images in their context to help verify selection quality."""
-    
-    random.seed(random_seed)
-    
-    # Find excluded indices
-    selected_set = set(selected_indices)
-    excluded_indices = [i for i in range(len(valid_paths)) if i not in selected_set]
-    
-    if len(excluded_indices) == 0:
-        print("No excluded images to visualize.")
-        return
-    
-    # Randomly select up to 10 excluded images
-    num_exclusions = min(10, len(excluded_indices))
-    selected_exclusions = random.sample(excluded_indices, num_exclusions)
-    
-    print(f"Visualizing {num_exclusions} randomly selected excluded images with context...")
-    
-    # Create figure
-    fig, axes = plt.subplots(num_exclusions, 10, figsize=(20, 2 * num_exclusions))
-    if num_exclusions == 1:
-        axes = axes.reshape(1, -1)
-    
-    fig.suptitle('Visual Verification: Green=Selected, Red=Excluded, Blue=Context', fontsize=14)
-    
-    for row, excluded_idx in enumerate(selected_exclusions):
-        # Get context indices (3 before + excluded + 6 after = 10 total)
-        context_start = excluded_idx - 3
-        context_end = excluded_idx + 7  # +7 because range is exclusive
-        
-        for col in range(10):
-            ax = axes[row, col]
-            current_idx = context_start + col
-            
-            # Determine image type and border color
-            if current_idx < 0 or current_idx >= len(valid_paths):
-                # Gray placeholder for out-of-bounds
-                ax.imshow(np.ones((100, 100, 3), dtype=np.uint8) * 128)  # Gray
-                border_color = 'gray'
-                ax.set_title('N/A', fontsize=8)
-            else:
-                # Load and display image
-                try:
-                    with Image.open(valid_paths[current_idx]) as img:
-                        # Resize to thumbnail
-                        img_resized = img.convert('RGB').resize((100, 100))
-                        ax.imshow(np.array(img_resized))
-                    
-                    # Determine border color based on selection status
-                    if current_idx in selected_set:
-                        border_color = 'green'  # Selected
-                        title = f'✓{current_idx}'
-                    elif current_idx == excluded_idx:
-                        border_color = 'red'    # Excluded (focus)
-                        title = f'✗{current_idx}'
-                    else:
-                        border_color = 'blue'   # Context
-                        title = f'{current_idx}'
-                    
-                    ax.set_title(title, fontsize=8)
-                    
-                except Exception as e:
-                    # Gray placeholder for failed images
-                    ax.imshow(np.ones((100, 100, 3), dtype=np.uint8) * 128)
-                    border_color = 'gray'
-                    ax.set_title(f'ERR{current_idx}', fontsize=8)
-            
-            # Add colored border
-            for spine in ax.spines.values():
-                spine.set_edgecolor(border_color)
-                spine.set_linewidth(3)
-            
-            ax.set_xticks([])
-            ax.set_yticks([])
-    
-    plt.tight_layout()
-    plt.show()
 
 
 def _hamming_distance(arr1: np.ndarray, arr2: np.ndarray) -> float:
