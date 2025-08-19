@@ -62,6 +62,11 @@ def select_distinct(
         ... )
     """
     
+    if target_count >= len(image_paths):
+        if show_progress:
+            print(f"Target count ({target_count}) >= input size ({len(image_paths)}). Returning all images.")
+        return [str(p) for p in image_paths]
+    
     return _select_distinct_rolling_window(
         image_paths, target_count, window_size, random_seed, show_progress, show_verification
     )
