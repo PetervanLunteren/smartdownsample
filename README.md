@@ -51,24 +51,13 @@ print(f"Selected {len(selected)} images")
 | `show_progress` | `True` | Whether to display progress bars |
 | `show_verification` | `False` | Show visual verification comparing excluded vs included images |
 
-## How it works
+## Step by Step
 
-1. **Natural sorting**: Images are processed in folder-major order with natural filename sorting (e.g., `img1.jpg`, `img2.jpg`, `img10.jpg`) to keep related images grouped.
-
-2. **Rolling window algorithm**: Efficient O(n) algorithm that scales to 100k+ images. Compares each candidate only to a sliding window of recent selections rather than all previous selections.
-
-3. **Diversity maximization**: Selects images that are maximally different from already-chosen images, eliminating duplicates and similar poses while preserving visual variety.
-
-## Visual Verification
-
-Set `show_verification=True` to see a comprehensive visualization showing up to 18 excluded images alongside their most similar included images. Features:
-
-- **Side-by-side comparisons**: Red-bordered excluded images next to green-bordered included images
-- **Professional layout**: Clean 3×6 grid showing multiple examples 
-- **Algorithm validation**: Verify that excluded images are genuinely similar to included ones
-- **Trust building**: Visual proof that the algorithm makes sensible decisions
-
-The visualization opens automatically in your default image viewer without saving files to disk.
+1. **Sort paths** by directory. Within each folder, files are naturally ordered (e.g., `img1.jpg`, `img2.jpg`, `img10.jpg`) so related images remain grouped.  
+2. **Compute perceptual hashes** for all valid image paths.  
+3. **Apply rolling window selection** on the hash array to choose indices of the most diverse images. This runs in O(n) time, scales to large classes of 100k+ images, and compares each candidate only to a sliding window of recent selections.  
+4. **Return results** as `[valid_paths[i] for i in selected_indices]`.  
+5. **Optional verification plot**: If `show_verification=True`, the algorithm displays a visual check of 18 randomly selected excluded images and their included counterpart. The visualization opens automatically in your default image viewer without saving files to disk.
 
 ## License
 
