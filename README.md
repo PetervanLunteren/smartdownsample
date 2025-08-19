@@ -59,6 +59,11 @@ print(f"Selected {len(selected)} images")
 4. **Return results** as `[valid_paths[i] for i in selected_indices]`.  
 5. **Optional verification plot**: If `show_verification=True`, the algorithm displays a visual check of 18 randomly selected excluded images and their included counterpart. The visualization opens automatically in your default image viewer without saving files to disk.
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/PetervanLunteren/EcoAssist-metadata/b72573d4cad68301602ca4aceab1bdc7b62d95df/downsample-ex.png" alt="Downsample example" width="500"/>
+</p>
+
+
 ## License
 
 MIT License – see LICENSE file.
