@@ -197,57 +197,58 @@ def _hash_to_binary_array(hash_obj) -> np.ndarray:
 def _rolling_window_selection(hash_arrays: np.ndarray, target_count: int, window_size: int, show_progress: bool) -> List[int]:
     """Rolling window algorithm for large datasets."""
     n_images = len(hash_arrays)
-    
+
     if target_count >= n_images:
         return list(range(n_images))
-    
+
     selected_indices = []
     remaining_indices = set(range(n_images))
-    
+
     # Start with random image
     first_idx = random.choice(list(remaining_indices))
     selected_indices.append(first_idx)
     remaining_indices.remove(first_idx)
-    
+
     # Rolling window selection
     iterations_needed = max(0, target_count - 1)
-    iterator = tqdm(range(iterations_needed), desc="Rolling window selection") if show_progress else range(iterations_needed)
-    
-    for _ in iterator:
+
+    # ✅ Always make an iterable; wrap with tqdm only if requested
+    iters = range(iterations_needed)
+    if show_progress:
+        iters = tqdm(iters, desc="Rolling window selection", total=iterations_needed)
+
+    for _ in iters:
         if len(remaining_indices) == 0:
             break
-            
+
         # Define rolling window
         window_start = max(0, len(selected_indices) - window_size)
         window_indices = selected_indices[window_start:]
-        
+
         max_min_distance = -1
         best_candidate = None
-        
+
         # Find most distant candidate from window
         for candidate_idx in remaining_indices:
             min_distance_to_window = float('inf')
-            
+
             for window_idx in window_indices:
                 distance = _hamming_distance(hash_arrays[candidate_idx], hash_arrays[window_idx])
-                min_distance_to_window = min(min_distance_to_window, distance)
-            
+                if distance < min_distance_to_window:
+                    min_distance_to_window = distance
+                    # small early exit if distance is 0
+                    if min_distance_to_window == 0:
+                        break
+
             if min_distance_to_window > max_min_distance:
                 max_min_distance = min_distance_to_window
                 best_candidate = candidate_idx
-        
+
         if best_candidate is not None:
             selected_indices.append(best_candidate)
             remaining_indices.remove(best_candidate)
-        
-        if show_progress and hasattr(iterator, 'update'):
-            iterator.update(1)
-    
+
     return selected_indices
-
-
-
-
 
 def _hamming_distance(arr1: np.ndarray, arr2: np.ndarray) -> float:
     """Calculate Hamming distance between two binary arrays."""
