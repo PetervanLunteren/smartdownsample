@@ -48,10 +48,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/smartdownsample"
-Repository = "https://github.com/yourusername/smartdownsample"
-Issues = "https://github.com/yourusername/smartdownsample/issues"
-Documentation = "https://github.com/yourusername/smartdownsample#readme"
+Homepage = "https://github.com/PetervanLunteren/smartdownsample"
+Repository = "https://github.com/PetervanLunteren/smartdownsample"
+Issues = "https://github.com/PetervanLunteren/smartdownsample/issues"
+Documentation = "https://github.com/PetervanLunteren/smartdownsample#readme"
 
 [tool.setuptools.packages.find]
 where = ["."]

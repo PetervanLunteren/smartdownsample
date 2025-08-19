@@ -16,7 +16,7 @@ setup(
     description="Intelligent image downsampling for camera traps and large datasets",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/smartdownsample",
+    url="https://github.com/PetervanLunteren/smartdownsample",
     packages=find_packages(),
     classifiers=[
         "Development Status :: 4 - Beta",
