@@ -39,6 +39,8 @@ setup(
         "imagehash>=4.2.0",
         "scikit-learn>=1.0.0",
         "tqdm>=4.62.0",
+        "natsort>=8.0.0",
+        "matplotlib>=3.0.0",
     ],
     extras_require={
         "dev": [
@@ -48,5 +50,5 @@ setup(
             "mypy>=0.900",
         ],
     },
-    keywords="image downsampling camera-trap machine-learning computer-vision diversity",
+    keywords="image downsampling camera-trap machine-learning computer-vision diversity deduplication",
 )
