@@ -72,28 +72,17 @@ class TestSmartDownsample:
         # Should return all available images
         assert len(selected) == len(temp_images)
     
-    def test_select_distinct_rolling_window_method(self, temp_images):
-        """Test rolling window method specifically."""
+    def test_select_distinct_window_size(self, temp_images):
+        """Test different window sizes."""
         selected = select_distinct(
             image_paths=temp_images,
             target_count=5,
-            method="rolling_window",
             window_size=3,
             show_progress=False
         )
         
         assert len(selected) == 5
     
-    def test_select_distinct_exact_method(self, temp_images):
-        """Test exact method specifically."""
-        selected = select_distinct(
-            image_paths=temp_images,
-            target_count=5,
-            method="exact",
-            show_progress=False
-        )
-        
-        assert len(selected) == 5
     
     def test_select_distinct_reproducible(self, temp_images):
         """Test that results are reproducible with same seed."""
@@ -139,15 +128,6 @@ class TestSmartDownsample:
         # (Note: there's a small chance they could be the same, but very unlikely)
         assert selected1 != selected2
     
-    def test_select_distinct_invalid_method(self, temp_images):
-        """Test that invalid method raises error."""
-        with pytest.raises(ValueError, match="Unknown method"):
-            select_distinct(
-                image_paths=temp_images,
-                target_count=5,
-                method="invalid_method",
-                show_progress=False
-            )
     
     def test_select_distinct_empty_list(self):
         """Test behavior with empty image list."""
@@ -191,7 +171,6 @@ class TestSmartDownsample:
             selected = select_distinct(
                 image_paths=temp_images,
                 target_count=5,
-                method="rolling_window",
                 window_size=window_size,
                 show_progress=False
             )

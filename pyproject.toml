@@ -37,6 +37,7 @@ dependencies = [
     "imagehash>=4.2.0",
     "scikit-learn>=1.0.0",
     "tqdm>=4.62.0",
+    "natsort>=8.0.0",
 ]
 
 [project.optional-dependencies]

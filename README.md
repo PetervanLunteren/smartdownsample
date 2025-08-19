@@ -39,18 +39,15 @@ print(f"Selected {len(selected)} images")
 |-----------|---------|-------------|
 | `image_paths` | Required | List of image file paths (str or Path objects) |
 | `target_count` | Required | Exact number of images to select |
-| `method` | `"rolling_window"` | Algorithm: `"rolling_window"` (fast) or `"exact"` (optimal) |
 | `window_size` | `100` | Rolling window size (larger = better quality, slower) |
-| `similarity_threshold` | `0.85` | Similarity threshold for exact method (0-1) |
 | `random_seed` | `42` | Random seed for reproducible results |
 | `show_progress` | `True` | Whether to display progress bars |
 
-## Algorithms
+## Algorithm
 
-- **Rolling Window (default):** O(n), scalable, compares to recent selections  
-- **Exact:** O(n²), optimal for small datasets (<1k)  
+**Rolling Window:** O(n) time complexity, scalable to 100k+ images. Compares candidates to recent selections using a sliding window approach. Computes perceptual hashes and uses greedy selection to maximize diversity while maintaining efficiency.
 
-Both compute perceptual hashes and use greedy selection to maximize diversity.
+Images are automatically sorted by folder structure with natural ordering (img1, img2, img10) to keep related images together during processing.
 
 ## License
 

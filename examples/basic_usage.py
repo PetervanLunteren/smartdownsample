@@ -71,7 +71,6 @@ def camera_trap_example():
         selected = select_distinct(
             image_paths=image_paths,
             target_count=target_count,
-            method="rolling_window",
             window_size=50,
             show_progress=False
         )
@@ -99,7 +98,6 @@ def performance_comparison():
     selected_rolling = select_distinct(
         image_paths=image_paths,
         target_count=target_count,
-        method="rolling_window",
         window_size=50,
         show_progress=False
     )
@@ -108,26 +106,7 @@ def performance_comparison():
     print(f"  Time: {rolling_time:.2f} seconds")
     print(f"  Selected: {len(selected_rolling)} images")
     
-    # Test exact method (only for smaller datasets)
-    if len(image_paths) <= 200:  # Only test exact on small datasets
-        print("\nTesting exact method...")
-        start_time = time.time()
-        
-        selected_exact = select_distinct(
-            image_paths=image_paths[:200],  # Use smaller subset
-            target_count=min(target_count, 50),
-            method="exact",
-            show_progress=False
-        )
-        
-        exact_time = time.time() - start_time
-        print(f"  Time: {exact_time:.2f} seconds")
-        print(f"  Selected: {len(selected_exact)} images")
-        
-        speedup = exact_time / rolling_time if rolling_time > 0 else 0
-        print(f"\nSpeedup: {speedup:.1f}x faster with rolling_window")
-    else:
-        print("\nExact method skipped (dataset too large for demo)")
+    print(f"\nRolling window method completed in {rolling_time:.2f} seconds")
 
 
 if __name__ == "__main__":
