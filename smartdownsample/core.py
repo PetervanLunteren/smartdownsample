@@ -11,6 +11,8 @@ import random
 from tqdm import tqdm
 import warnings
 from natsort import natsorted
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 
 warnings.filterwarnings('ignore')
 
@@ -20,7 +22,8 @@ def select_distinct(
     target_count: int,
     window_size: int = 100,
     random_seed: int = 42,
-    show_progress: bool = True
+    show_progress: bool = True,
+    show_verification: bool = False
 ) -> List[str]:
     """
     Select the most diverse/distinct images from a large dataset.
@@ -34,6 +37,7 @@ def select_distinct(
         window_size: Rolling window size for diversity comparison
         random_seed: Random seed for reproducible results
         show_progress: Whether to show progress bars
+        show_verification: Whether to show visual verification of excluded images
         
     Returns:
         List of exactly target_count selected image paths as strings
@@ -50,10 +54,17 @@ def select_distinct(
         ...     target_count=1000,
         ...     window_size=100
         ... )
+        >>> 
+        >>> # With visual verification of excluded images
+        >>> selected = select_distinct(
+        ...     image_paths,
+        ...     target_count=100,
+        ...     show_verification=True
+        ... )
     """
     
     return _select_distinct_rolling_window(
-        image_paths, target_count, window_size, random_seed, show_progress
+        image_paths, target_count, window_size, random_seed, show_progress, show_verification
     )
 
 
@@ -62,7 +73,8 @@ def _select_distinct_rolling_window(
     target_count: int,
     window_size: int,
     random_seed: int,
-    show_progress: bool
+    show_progress: bool,
+    show_verification: bool
 ) -> List[str]:
     """Rolling window approach - scales to 100k+ images."""
     
@@ -104,6 +116,10 @@ def _select_distinct_rolling_window(
     
     if show_progress:
         print(f"Selected exactly {len(selected_paths)} most diverse images")
+    
+    # Show verification plot if requested
+    if show_verification and len(valid_paths) > target_count:
+        _visualize_exclusions(valid_paths, selected_indices, random_seed)
     
     return selected_paths
 
@@ -220,6 +236,86 @@ def _rolling_window_selection(hash_arrays: np.ndarray, target_count: int, window
     return selected_indices
 
 
+
+
+def _visualize_exclusions(valid_paths: List[str], selected_indices: List[int], random_seed: int) -> None:
+    """Visualize excluded images in their context to help verify selection quality."""
+    
+    random.seed(random_seed)
+    
+    # Find excluded indices
+    selected_set = set(selected_indices)
+    excluded_indices = [i for i in range(len(valid_paths)) if i not in selected_set]
+    
+    if len(excluded_indices) == 0:
+        print("No excluded images to visualize.")
+        return
+    
+    # Randomly select up to 10 excluded images
+    num_exclusions = min(10, len(excluded_indices))
+    selected_exclusions = random.sample(excluded_indices, num_exclusions)
+    
+    print(f"Visualizing {num_exclusions} randomly selected excluded images with context...")
+    
+    # Create figure
+    fig, axes = plt.subplots(num_exclusions, 10, figsize=(20, 2 * num_exclusions))
+    if num_exclusions == 1:
+        axes = axes.reshape(1, -1)
+    
+    fig.suptitle('Visual Verification: Green=Selected, Red=Excluded, Blue=Context', fontsize=14)
+    
+    for row, excluded_idx in enumerate(selected_exclusions):
+        # Get context indices (3 before + excluded + 6 after = 10 total)
+        context_start = excluded_idx - 3
+        context_end = excluded_idx + 7  # +7 because range is exclusive
+        
+        for col in range(10):
+            ax = axes[row, col]
+            current_idx = context_start + col
+            
+            # Determine image type and border color
+            if current_idx < 0 or current_idx >= len(valid_paths):
+                # Gray placeholder for out-of-bounds
+                ax.imshow(np.ones((100, 100, 3), dtype=np.uint8) * 128)  # Gray
+                border_color = 'gray'
+                ax.set_title('N/A', fontsize=8)
+            else:
+                # Load and display image
+                try:
+                    with Image.open(valid_paths[current_idx]) as img:
+                        # Resize to thumbnail
+                        img_resized = img.convert('RGB').resize((100, 100))
+                        ax.imshow(np.array(img_resized))
+                    
+                    # Determine border color based on selection status
+                    if current_idx in selected_set:
+                        border_color = 'green'  # Selected
+                        title = f'✓{current_idx}'
+                    elif current_idx == excluded_idx:
+                        border_color = 'red'    # Excluded (focus)
+                        title = f'✗{current_idx}'
+                    else:
+                        border_color = 'blue'   # Context
+                        title = f'{current_idx}'
+                    
+                    ax.set_title(title, fontsize=8)
+                    
+                except Exception as e:
+                    # Gray placeholder for failed images
+                    ax.imshow(np.ones((100, 100, 3), dtype=np.uint8) * 128)
+                    border_color = 'gray'
+                    ax.set_title(f'ERR{current_idx}', fontsize=8)
+            
+            # Add colored border
+            for spine in ax.spines.values():
+                spine.set_edgecolor(border_color)
+                spine.set_linewidth(3)
+            
+            ax.set_xticks([])
+            ax.set_yticks([])
+    
+    plt.tight_layout()
+    plt.show()
 
 
 def _hamming_distance(arr1: np.ndarray, arr2: np.ndarray) -> float:

@@ -38,6 +38,33 @@ def basic_example():
         print(f"  - {img}")
 
 
+def verification_example():
+    """Example showing visual verification feature."""
+    print("\n\n4. Visual Verification Example")
+    print("-" * 32)
+    
+    # Simulate more images for better demonstration
+    image_paths = [f"verification_test_{i:03d}.jpg" for i in range(50)]
+    
+    print(f"Dataset: {len(image_paths)} images")
+    print("Selecting 20 most diverse images with visual verification...")
+    
+    # Note: This would show a matplotlib plot if real images existed
+    selected = select_distinct(
+        image_paths=image_paths,
+        target_count=20,
+        show_verification=True,  # This will show excluded images in context
+        show_progress=False
+    )
+    
+    print(f"Selected {len(selected)} images")
+    print("\nVerification plot shows:")
+    print("  - Green borders: Selected images")  
+    print("  - Red borders: Excluded images (focus)")
+    print("  - Blue borders: Context images")
+    print("  - Gray placeholders: Missing context at boundaries")
+
+
 def camera_trap_example():
     """Camera trap workflow example."""
     print("\n\n2. Camera Trap Workflow")
@@ -112,6 +139,7 @@ def performance_comparison():
 if __name__ == "__main__":
     # Run all examples
     basic_example()
+    verification_example()
     camera_trap_example()
     performance_comparison()
     

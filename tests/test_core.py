@@ -176,6 +176,19 @@ class TestSmartDownsample:
             )
             
             assert len(selected) == 5
+    
+    def test_select_distinct_with_verification(self, temp_images):
+        """Test that verification parameter works without errors."""
+        # Note: We can't easily test the actual plot display in unit tests,
+        # but we can verify the parameter doesn't break the function
+        selected = select_distinct(
+            image_paths=temp_images,
+            target_count=5,
+            show_verification=True,
+            show_progress=False
+        )
+        
+        assert len(selected) == 5
 
 
 if __name__ == "__main__":
