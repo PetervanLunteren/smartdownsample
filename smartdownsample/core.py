@@ -211,7 +211,7 @@ def _rolling_window_selection(hash_arrays: np.ndarray, target_count: int, window
     
     # Rolling window selection
     iterations_needed = max(0, target_count - 1)
-    iterator = tqdm(total=iterations_needed, desc="Rolling window selection") if show_progress else range(iterations_needed)
+    iterator = tqdm(range(iterations_needed), desc="Rolling window selection") if show_progress else range(iterations_needed)
     
     for _ in iterator:
         if len(remaining_indices) == 0:
