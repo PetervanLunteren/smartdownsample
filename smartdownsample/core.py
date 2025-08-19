@@ -11,8 +11,9 @@ import random
 from tqdm import tqdm
 import warnings
 from natsort import natsorted
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 import multiprocessing as mp
+import sys
 import json
 import os
 from functools import partial
@@ -176,6 +177,18 @@ def _compute_hash_batch(paths_batch: List[str], hash_size: int) -> List[Tuple[st
     return results
 
 
+def _compute_hash_single(path: str, hash_size: int) -> Tuple[str, Optional[str]]:
+    """Compute hash for a single image."""
+    try:
+        with Image.open(path) as img:
+            if img.mode != 'RGB':
+                img = img.convert('RGB')
+            hash_val = imagehash.phash(img, hash_size=hash_size)
+            return (path, str(hash_val))
+    except Exception:
+        return (path, None)
+
+
 def _calculate_hashes_parallel(
     image_paths: List[Union[str, Path]], 
     show_progress: bool,
@@ -223,23 +236,33 @@ def _calculate_hashes_parallel(
             uncached_paths.append(path_str)
     
     if uncached_paths:
-        # Split into batches
-        batches = [uncached_paths[i:i+batch_size] for i in range(0, len(uncached_paths), batch_size)]
+        # Determine whether to use ProcessPoolExecutor or ThreadPoolExecutor
+        # Use ThreadPoolExecutor on Windows or when running in interactive mode
+        use_threads = (
+            sys.platform == 'win32' or 
+            hasattr(sys, 'ps1') or  # Interactive mode
+            not hasattr(mp, 'get_start_method') or
+            (hasattr(mp, 'get_start_method') and mp.get_start_method() == 'spawn')
+        )
         
-        # Process batches in parallel
-        compute_func = partial(_compute_hash_batch, hash_size=hash_size)
-        
-        with ProcessPoolExecutor(max_workers=n_workers) as executor:
-            futures = [executor.submit(compute_func, batch) for batch in batches]
+        if use_threads:
+            # Use ThreadPoolExecutor for Windows or interactive environments
+            if show_progress and sys.platform == 'win32':
+                print("Using thread-based parallel processing (Windows compatible)")
             
-            if show_progress:
-                futures_iterator = tqdm(as_completed(futures), total=len(futures), desc="Processing batches")
-            else:
-                futures_iterator = as_completed(futures)
+            # Process images individually with threads
+            compute_func = partial(_compute_hash_single, hash_size=hash_size)
             
-            for future in futures_iterator:
-                batch_results = future.result()
-                for path_str, hash_str in batch_results:
+            with ThreadPoolExecutor(max_workers=n_workers) as executor:
+                futures = [executor.submit(compute_func, path) for path in uncached_paths]
+                
+                if show_progress:
+                    futures_iterator = tqdm(as_completed(futures), total=len(futures), desc="Processing images")
+                else:
+                    futures_iterator = as_completed(futures)
+                
+                for future in futures_iterator:
+                    path_str, hash_str = future.result()
                     if hash_str:
                         hashes.append(imagehash.hex_to_hash(hash_str))
                         valid_paths.append(path_str)
@@ -249,6 +272,34 @@ def _calculate_hashes_parallel(
                             cache[path_key] = hash_str
                         except:
                             pass
+        else:
+            # Use ProcessPoolExecutor for Unix-like systems
+            # Split into batches
+            batches = [uncached_paths[i:i+batch_size] for i in range(0, len(uncached_paths), batch_size)]
+            
+            # Process batches in parallel
+            compute_func = partial(_compute_hash_batch, hash_size=hash_size)
+            
+            with ProcessPoolExecutor(max_workers=n_workers) as executor:
+                futures = [executor.submit(compute_func, batch) for batch in batches]
+                
+                if show_progress:
+                    futures_iterator = tqdm(as_completed(futures), total=len(futures), desc="Processing batches")
+                else:
+                    futures_iterator = as_completed(futures)
+                
+                for future in futures_iterator:
+                    batch_results = future.result()
+                    for path_str, hash_str in batch_results:
+                        if hash_str:
+                            hashes.append(imagehash.hex_to_hash(hash_str))
+                            valid_paths.append(path_str)
+                            # Update cache
+                            try:
+                                path_key = f"{path_str}_{os.path.getmtime(path_str)}"
+                                cache[path_key] = hash_str
+                            except:
+                                pass
     
     # Save cache if provided
     if cache_dir and uncached_paths:
