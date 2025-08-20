@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "smartdownsample"
-version = "1.8.0"
+version = "1.8.4"
 description = "Smart image downsampling for image classification datasets"
 readme = "README.md"
 license = {text = "MIT"}

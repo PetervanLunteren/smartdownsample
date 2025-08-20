@@ -78,8 +78,8 @@ def _plot_bucket_thumbnails(bucket_stats: List[Dict[str, Any]], viz_data: Dict, 
     cols = int(np.ceil(np.sqrt(n_buckets)))
     rows = int(np.ceil(n_buckets / cols))
     
-    # Create figure
-    fig, axes = plt.subplots(rows, cols, figsize=(cols * 5, rows * 5))
+    # Create figure with extra height for titles
+    fig, axes = plt.subplots(rows, cols, figsize=(cols * 5, rows * 6))
     
     # Ensure axes is always a 2D array for consistent access
     if rows == 1 and cols == 1:
@@ -153,8 +153,15 @@ def _plot_bucket_thumbnails(bucket_stats: List[Dict[str, Any]], viz_data: Dict, 
         # Create and display thumbnail grid
         grid_img = create_bucket_grid(bucket_images)
         ax.imshow(grid_img)
-        ax.set_title(str(bucket_idx + 1), fontsize=12, pad=8)
-        ax.axis('off')
+        ax.set_title(str(bucket_idx + 1), fontsize=12, pad=2)
+        
+        # Add thin grey border around the grid
+        for spine in ax.spines.values():
+            spine.set_visible(True)
+            spine.set_color('lightgrey')
+            spine.set_linewidth(1)
+        ax.set_xticks([])
+        ax.set_yticks([])
     
     # Hide unused subplots
     for i in range(n_buckets, rows * cols):
@@ -163,9 +170,9 @@ def _plot_bucket_thumbnails(bucket_stats: List[Dict[str, Any]], viz_data: Dict, 
         axes[row, col].axis('off')
     
     plt.suptitle('Bucket thumbnails: visual similarity groups (5x5 grid, max 25 images per bucket)', 
-                 fontsize=14, y=0.96)
-    plt.tight_layout()
-    plt.subplots_adjust(top=0.88)
+                 fontsize=14, y=0.98)
+    plt.tight_layout(pad=3.0)
+    plt.subplots_adjust(top=0.92, hspace=0.4)
     plt.show()
 
 
@@ -276,7 +283,7 @@ def sample_diverse(
     
     # Sort all input paths naturally to preserve camera/folder structure globally
     if show_progress:
-        print(" - Sorting paths naturally...")
+        print(" - Sorting paths...")
     sorted_image_paths = natsorted([str(p) for p in image_paths])
     
     # Step 1: Compute hashes in parallel
@@ -415,15 +422,11 @@ def sample_diverse(
     # Note: Paths are already naturally sorted globally, so bucket order preserves camera/folder structure
     
     if show_progress:
-        print(f" - Grouped into {len(buckets)} diversity buckets...")
-        
         # Show bucket size distribution
         bucket_sizes = [len(indices) for indices in buckets.values()]
-        print(f" - Bucket sizes: (min={min(bucket_sizes)}, max={max(bucket_sizes)}, avg={sum(bucket_sizes)/len(bucket_sizes):.1f})")
+        print(f" - Grouped into {len(buckets)} diversity buckets... (min={min(bucket_sizes)}, max={max(bucket_sizes)}, avg={sum(bucket_sizes)/len(bucket_sizes):.1f})")
     
     # Step 3: Diversity-preserving selection
-    if show_progress:
-        print(" - Using diversity-first with proportional distribution...")
     
     # Sort buckets by size (largest first)
     bucket_list = [(key, indices) for key, indices in buckets.items()]
