@@ -7,7 +7,7 @@ perfect for camera trap data and machine learning workflows.
 
 from .core import sample_diverse
 
-__version__ = "1.8.4"
+__version__ = "1.8.5"
 __author__ = "Smart Image Downsampler"
 __email__ = "your.email@example.com"
 

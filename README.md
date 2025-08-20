@@ -78,7 +78,7 @@ The algorithm balances speed and diversity in four steps:
 4. **Within-bucket selection**  
    - Buckets are naturally sorted by folder structure
    - Locations, deployments, and sequences stay together in order  
-   - Take every stride-th image until quota is met, ensuring a diverse selection across folders
+   - Take every stride-th image until quota is met, ensuring a systematical sample across time and space
 
 5. **Optionally show distribution chart**  
    - Vertical bar chart of kept vs. excluded images per bucket  
