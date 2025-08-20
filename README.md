@@ -30,7 +30,7 @@ my_image_list = [
 # Basic usage
 selected = sample_diverse(
     image_paths=my_image_list,
-    target_count=1000
+    target_count=50000
 )
 ```
 
