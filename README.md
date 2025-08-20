@@ -1,6 +1,6 @@
 # smartdownsample
 
-**Fast image downsampling for large camera trap animal crop datasets**
+**Fast and smart-ish image downsampling for large camera trap animal crop datasets**
 
 `smartdownsample` helps select representative subsets of camera trap images, particularly centered animal crops. In many machine learning workflows, majority classes may contain hundreds of thousands of images. These often need to be downsampled for processing efficiency or dataset balance, but without losing valuable variation.  
 
