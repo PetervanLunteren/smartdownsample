@@ -2,11 +2,12 @@
 
 **Fast and smart(_-ish_) image downsampling for large camera trap animal crop datasets**
 
-`smartdownsample` helps select representative subsets of camera trap images, particularly centered animal crops. In many machine learning workflows, majority classes may contain hundreds of thousands of images. These often need to be downsampled for processing efficiency or dataset balance, but without losing valuable variation.  
+`smartdownsample` helps select representative subsets of camera trap images. In many machine learning workflows, majority classes can contain hundreds of thousands of images. These often need to be downsampled for processing efficiency or dataset balance, but without losing too much valuable variation.  
 
-An ideal solution would retain only truly distinct images and exclude near-duplicates, but that is computationally expensive for large datasets. This package provides a practical compromise: fast downsampling that preserves diversity with minimal computations, reducing processing time from hours or days to just minutes.  
+An ideal solution would keep only truly distinct images and exclude near-duplicates, but that is very computationally expensive for large datasets. This package provides a practical compromise: fast downsampling that preserves diversity with minimal computations, reducing processing time from hours to minutes.  
 
-If you need mathematically optimal results, this tool is not the right fit. If you want a reasonably intelligent selection that is more effective than random sampling, `smartdownsample` is designed for you.
+If you need mathematically perfect results, this isn’t the tool. But if you want a smart, lightweight alternative that does a lot better than simple random sampling... `smartdownsample`.
+
 
 ## Installation
 
