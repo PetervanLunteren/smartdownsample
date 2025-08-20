@@ -1,13 +1,12 @@
 # smartdownsample
 
-**Fast and smart(_-ish_) image downsampling for large camera trap animal crop datasets**
+**Fast and smart(_-ish_) image downsampling for large datasets**
 
 `smartdownsample` helps select representative subsets of camera trap images. In many machine learning workflows, majority classes can contain hundreds of thousands of images. These often need to be downsampled for processing efficiency or dataset balance, but without losing too much valuable variation.  
 
 An ideal solution would keep only truly distinct images and exclude near-duplicates, but that is very computationally expensive for large datasets. This package provides a practical compromise: fast downsampling that preserves diversity with minimal computations, reducing processing time from hours to minutes.  
 
-If you need mathematically perfect results, this isn’t the tool. But if you want a smart, lightweight alternative that does a lot better than simple random sampling... `smartdownsample`.
-
+If you need mathematically perfect results, this isn’t the tool. But if you want a smart, lightweight alternative that does a lot better than random sampling → `smartdownsample`.
 
 ## Installation
 
@@ -61,36 +60,30 @@ The algorithm balances speed and diversity in four steps:
    - Overall brightness (`1 bit`) → dark vs. bright  
    - Average color (`1 bit`) → dominant scene color (red/green/blue/neutral)  
 
-   Maximum: 128 theoretical buckets (2×2×2×2×2×4)  
-   Typical: 16–80 buckets, depending on dataset diversity  
-
-   Examples of resulting groups:  
-   - Dark grayscale (night IR)  
-   - Bright blue snow scenes  
-   - Color forest images with mixed poses  
-
 2. **Bucket grouping**  
-   Images are assigned to similarity buckets based on these features.  
+   Images are sorted into "similarity buckets" based on the visual features extracted at step 1.  
+   - At most 128 buckets are possible (2×2×2×2×2×4 feature splits).  
+   - In practice, most datasets produce only a few dozen buckets, depending on their diversity.  
 
 3. **Selection across buckets**  
    - Ensure at least one image per bucket (diversity first)  
    - Fill the remaining quota proportionally from larger buckets  
 
 4. **Within-bucket selection**  
-   - Buckets are naturally sorted by folder structure
-   - Locations, deployments, and sequences stay together in order  
-   - Take every stride-th image until quota is met, ensuring a systematical sample across time and space
+   - Buckets are kept in their natural folder order  
+   - This preserves any inherent structure in the dataset (e.g., locations, events, sequences, etc)  
+   - Images are then sampled at regular intervals (every stride-th image) until the target count is reached, ensuring a systematic spread across the bucket  
 
 5. **Optionally show distribution chart**  
    - Vertical bar chart of kept vs. excluded images per bucket  
-<img src="https://github.com/PetervanLunteren/EcoAssist-metadata/blob/main/smartdown-sample/bar.png" width="50%">
+<img src="https://github.com/PetervanLunteren/EcoAssist-metadata/blob/main/smartdown-sample/bar.png" width="80%">
 
 
 6. **Optionally show thumbnail grids**  
    - 5×5 grids from each bucket, for quick visual review  
-<img src="https://github.com/PetervanLunteren/EcoAssist-metadata/blob/main/smartdown-sample/grid.png" width="50%">
+<img src="https://github.com/PetervanLunteren/EcoAssist-metadata/blob/main/smartdown-sample/grid.png" width="80%">
 
 
 ## License
 
-MIT License – see LICENSE file.
+MIT License → see [LICENSE file](https://github.com/PetervanLunteren/smartdownsample/blob/main/LICENSE).
