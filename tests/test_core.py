@@ -10,7 +10,7 @@ from pathlib import Path
 from PIL import Image
 import numpy as np
 
-from smartdownsample import select_distinct
+from smartdownsample import sample_diverse
 
 
 class TestSmartDownsample:
@@ -40,7 +40,7 @@ class TestSmartDownsample:
     def test_select_distinct_basic(self, temp_images):
         """Test basic functionality."""
         target_count = 5
-        selected = select_distinct(
+        selected = sample_diverse(
             image_paths=temp_images,
             target_count=target_count,
             show_progress=False
@@ -53,7 +53,7 @@ class TestSmartDownsample:
     def test_select_distinct_exact_count(self, temp_images):
         """Test that exact count is always returned."""
         for target in [1, 3, 5, 8, 10]:
-            selected = select_distinct(
+            selected = sample_diverse(
                 image_paths=temp_images,
                 target_count=target,
                 show_progress=False
@@ -63,7 +63,7 @@ class TestSmartDownsample:
     def test_select_distinct_target_larger_than_input(self, temp_images):
         """Test behavior when target is larger than input."""
         target_count = 20  # More than the 10 available images
-        selected = select_distinct(
+        selected = sample_diverse(
             image_paths=temp_images,
             target_count=target_count,
             show_progress=False
@@ -72,12 +72,12 @@ class TestSmartDownsample:
         # Should return all available images
         assert len(selected) == len(temp_images)
     
-    def test_select_distinct_window_size(self, temp_images):
-        """Test different window sizes."""
-        selected = select_distinct(
+    def test_select_distinct_hash_size(self, temp_images):
+        """Test different hash sizes."""
+        selected = sample_diverse(
             image_paths=temp_images,
             target_count=5,
-            window_size=3,
+            hash_size=4,
             show_progress=False
         )
         
@@ -89,14 +89,14 @@ class TestSmartDownsample:
         target_count = 5
         seed = 42
         
-        selected1 = select_distinct(
+        selected1 = sample_diverse(
             image_paths=temp_images,
             target_count=target_count,
             random_seed=seed,
             show_progress=False
         )
         
-        selected2 = select_distinct(
+        selected2 = sample_diverse(
             image_paths=temp_images,
             target_count=target_count,
             random_seed=seed,
@@ -110,14 +110,14 @@ class TestSmartDownsample:
         """Test that different seeds give different results."""
         target_count = 5
         
-        selected1 = select_distinct(
+        selected1 = sample_diverse(
             image_paths=temp_images,
             target_count=target_count,
             random_seed=42,
             show_progress=False
         )
         
-        selected2 = select_distinct(
+        selected2 = sample_diverse(
             image_paths=temp_images,
             target_count=target_count,
             random_seed=99,
@@ -131,7 +131,7 @@ class TestSmartDownsample:
     
     def test_select_distinct_empty_list(self):
         """Test behavior with empty image list."""
-        selected = select_distinct(
+        selected = sample_diverse(
             image_paths=[],
             target_count=5,
             show_progress=False
@@ -143,7 +143,7 @@ class TestSmartDownsample:
         """Test behavior with single image."""
         single_image = temp_images[:1]
         
-        selected = select_distinct(
+        selected = sample_diverse(
             image_paths=single_image,
             target_count=1,
             show_progress=False
@@ -156,7 +156,7 @@ class TestSmartDownsample:
         """Test that Path objects work as input."""
         path_objects = [Path(p) for p in temp_images]
         
-        selected = select_distinct(
+        selected = sample_diverse(
             image_paths=path_objects,
             target_count=5,
             show_progress=False
@@ -165,26 +165,24 @@ class TestSmartDownsample:
         assert len(selected) == 5
         assert all(isinstance(path, str) for path in selected)  # Should return strings
     
-    def test_select_distinct_window_sizes(self, temp_images):
-        """Test different window sizes."""
-        for window_size in [1, 5, 10, 20]:
-            selected = select_distinct(
+    def test_select_distinct_hash_sizes(self, temp_images):
+        """Test different hash sizes."""
+        for hash_size in [4, 6, 8, 10]:
+            selected = sample_diverse(
                 image_paths=temp_images,
                 target_count=5,
-                window_size=window_size,
+                hash_size=hash_size,
                 show_progress=False
             )
             
             assert len(selected) == 5
     
-    def test_select_distinct_with_verification(self, temp_images):
-        """Test that verification parameter works without errors."""
-        # Note: We can't easily test the actual plot display in unit tests,
-        # but we can verify the parameter doesn't break the function
-        selected = select_distinct(
+    def test_select_distinct_n_workers(self, temp_images):
+        """Test that n_workers parameter works without errors."""
+        selected = sample_diverse(
             image_paths=temp_images,
             target_count=5,
-            show_verification=True,
+            n_workers=2,
             show_progress=False
         )
         

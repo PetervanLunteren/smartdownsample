@@ -5,10 +5,10 @@ Smart downsampling library that selects the most diverse images from large datas
 perfect for camera trap data and machine learning workflows.
 """
 
-from .core import select_distinct
+from .core import sample_diverse
 
-__version__ = "0.2.1"
+__version__ = "1.0.1"
 __author__ = "Smart Image Downsampler"
 __email__ = "your.email@example.com"
 
-__all__ = ["select_distinct"]
+__all__ = ["sample_diverse"]
