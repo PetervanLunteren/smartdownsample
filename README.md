@@ -82,12 +82,12 @@ The algorithm balances speed and diversity in four steps:
 
 5. **Optionally show distribution chart**  
    - Vertical bar chart of kept vs. excluded images per bucket  
-<img src="https://github.com/PetervanLunteren/EcoAssist-metadata/blob/main/smartdown-sample/bar.png" width="80%">
+<img src="https://github.com/PetervanLunteren/EcoAssist-metadata/blob/main/smartdown-sample/bar.png" width="100%">
 
 
 6. **Optionally show thumbnail grids**  
    - 5×5 grids from each bucket, for quick visual review  
-<img src="https://github.com/PetervanLunteren/EcoAssist-metadata/blob/main/smartdown-sample/grid.png" width="80%">
+<img src="https://github.com/PetervanLunteren/EcoAssist-metadata/blob/main/smartdown-sample/grid.png" width="100%">
 
 
 ## License
