@@ -1,12 +1,18 @@
-# smartdownsample
+# smartdownsample  
 
-**Fast and smart(_-ish_) image downsampling for large datasets**
+**Fast and lightweight downsampling for large image datasets**  
 
-`smartdownsample` helps select representative subsets of camera trap images. In many machine learning workflows, majority classes can contain hundreds of thousands of images. These often need to be downsampled for processing efficiency or dataset balance, but without losing too much valuable variation.  
+`smartdownsample` is built for camera trap data, but works with any image collection that:  
+1. Contains more images than you need for training, and  
+2. Has a high level of redundancy (e.g., many near-duplicates).  
 
-An ideal solution would keep only truly distinct images and exclude near-duplicates, but that is very computationally expensive for large datasets. This package provides a practical compromise: fast downsampling that preserves diversity with minimal computations, reducing processing time from hours to minutes.  
+This is especially common in camera trap datasets, but the approach is broadly applicable.  
 
-If you need mathematically perfect results, this isn’t the tool. But if you want a smart, lightweight alternative that does a lot better than random sampling → `smartdownsample`.
+The tool selects representative subsets while preserving diversity. In many ML workflows, majority classes can have hundreds of thousands of images. These often need to be reduced for efficiency or class balance—without discarding too much valuable variation.  
+
+Perfect deduplication would require heavy computations and isn’t feasible at scale. Instead, `smartdownsample` offers a practical compromise: fast downsampling that keeps diversity with minimal overhead, cutting processing time from hours (or days) to minutes.  
+
+If you need mathematically optimal results, this isn’t the right fit. But if you want a simple, effective alternative that outperforms random sampling, `smartdownsample` is designed for you.  
 
 ## Installation
 
