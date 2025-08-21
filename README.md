@@ -2,11 +2,9 @@
 
 **Fast and lightweight downsampling for large image datasets**  
 
-`smartdownsample` is built for camera trap data, but works with any image collection that:  
+`smartdownsample` is built for image collections that:  
 1. Contains more images than you need for training, and  
-2. Has a high level of redundancy (e.g., many near-duplicates).  
-
-This is especially common in camera trap datasets, but the approach is broadly applicable.  
+2. Has a high level of redundancy
 
 The tool selects representative subsets while preserving diversity. In many ML workflows, majority classes can have hundreds of thousands of images. These often need to be reduced for efficiency or class balance—without discarding too much valuable variation.  
 
