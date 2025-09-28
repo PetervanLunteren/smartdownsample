@@ -62,11 +62,11 @@ The algorithm balances speed and diversity in four steps:
    - AHash (`1 bit`) → brightness/contrast  
    - Color variance (`1 bit`) → grayscale vs. color  
    - Overall brightness (`1 bit`) → dark vs. bright  
-   - Average color (`1 bit`) → dominant scene color (red/green/blue/neutral)  
+   - Average color (`2 bits`) → dominant scene color (red/green/blue/neutral)  
 
 2. **Bucket grouping**  
    Images are sorted into "similarity buckets" based on the visual features extracted at step 1.  
-   - At most 128 buckets are possible (2×2×2×2×2×4 feature splits).  
+   - At most 128 buckets are possible (4×2×2×2×4 feature splits).  
    - In practice, most datasets produce only a few dozen buckets, depending on their diversity.  
 
 3. **Selection across buckets**  
