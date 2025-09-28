@@ -324,12 +324,19 @@ def sample_diverse(
                     'brightness': brightness
                 }
                 
-                return str(path), combined_features
-        except:
-            return str(path), None
+                return str(path), combined_features, None
+        except FileNotFoundError:
+            return str(path), None, f"File not found: {path}"
+        except PermissionError:
+            return str(path), None, f"Permission denied: {path}"
+        except Exception as e:
+            # Catch other PIL/image processing errors
+            error_type = type(e).__name__
+            return str(path), None, f"Image processing failed ({error_type}): {path}"
     
     valid_paths = []
     hashes = []
+    failed_paths = []
     
     with ThreadPoolExecutor(max_workers=n_workers) as executor:
         futures = [executor.submit(compute_hash, path) for path in sorted_image_paths]
@@ -340,10 +347,25 @@ def sample_diverse(
             futures_iter = futures
         
         for future in futures_iter:
-            path, features = future.result()
+            path, features, error_msg = future.result()
             if features is not None:
                 valid_paths.append(path)
                 hashes.append(features)
+            else:
+                failed_paths.append((path, error_msg))
+    
+    # Report any failed images
+    if failed_paths:
+        n_failed = len(failed_paths)
+        if show_progress:
+            print(f" - Warning: {n_failed} image(s) could not be processed:")
+            for path, error_msg in failed_paths[:10]:  # Show first 10 errors
+                print(f"   × {error_msg}")
+            if n_failed > 10:
+                print(f"   ... and {n_failed - 10} more errors")
+        else:
+            # Even when show_progress=False, we should warn about failed images
+            print(f"Warning: {n_failed} image(s) could not be processed. Use show_progress=True for details.")
     
     n_valid = len(valid_paths)
     
