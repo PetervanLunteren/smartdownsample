@@ -408,7 +408,7 @@ def sample_diverse(
         
         # Combine all features into bucket key
         # 2 center structure + 1 brightness + 1 color + 1 overall_brightness + 2 color_theme = 7 dimensions  
-        # Max buckets: 2^2 × 2^1 × 2 × 2 × 4 = 4 × 2 × 2 × 2 × 4 = 128 buckets (but many combinations won't exist)
+        # Max buckets: 2^2 × 2^1 × 2^1 × 2^1 × 2^2 = 4 × 2 × 2 × 2 × 4 = 128 buckets (but many combinations won't exist)
         bucket_key = structure_bits + brightness_bit + (color_bucket, bright_bucket, color_theme)
         bucket_keys.append(bucket_key)
     
