@@ -9,6 +9,8 @@ import os
 from pathlib import Path
 from PIL import Image
 import numpy as np
+import io
+import sys
 
 from smartdownsample import sample_diverse
 
@@ -48,6 +50,106 @@ class TestSmartDownsample:
         
         assert len(selected) == target_count
         assert all(isinstance(path, str) for path in selected)
+    
+    def test_invalid_image_paths_with_warnings(self, temp_images, capsys):
+        """Test error reporting for invalid image paths."""
+        # Add some invalid paths to the list
+        invalid_paths = temp_images + [
+            "/nonexistent/path/image1.jpg",
+            "/nonexistent/path/image2.jpg",
+            "invalid_file.jpg"
+        ]
+        
+        selected = sample_diverse(
+            image_paths=invalid_paths,
+            target_count=5,
+            show_progress=True  # Enable progress to see detailed warnings
+        )
+        
+        # Should still work with valid images
+        assert len(selected) == 5
+        
+        # Check that warnings were printed
+        captured = capsys.readouterr()
+        assert "Warning" in captured.out
+        assert "could not be processed" in captured.out
+        assert "File not found" in captured.out
+    
+    def test_invalid_image_paths_quiet_mode(self, temp_images, capsys):
+        """Test error reporting in quiet mode (show_progress=False)."""
+        # Add some invalid paths to the list
+        invalid_paths = temp_images + [
+            "/nonexistent/path/image1.jpg",
+            "/nonexistent/path/image2.jpg"
+        ]
+        
+        selected = sample_diverse(
+            image_paths=invalid_paths,
+            target_count=5,
+            show_progress=False  # Quiet mode
+        )
+        
+        # Should still work with valid images
+        assert len(selected) == 5
+        
+        # Check that brief warning was printed even in quiet mode
+        captured = capsys.readouterr()
+        assert "Warning" in captured.out
+        assert "could not be processed" in captured.out
+        assert "Use show_progress=True for details" in captured.out
+    
+    def test_corrupt_image_handling(self, capsys):
+        """Test handling of corrupt image files."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Create valid image
+            valid_img_path = Path(temp_dir) / "valid.jpg"
+            img_array = np.random.randint(0, 255, (100, 100, 3), dtype=np.uint8)
+            img = Image.fromarray(img_array)
+            img.save(valid_img_path)
+            
+            # Create corrupt image file (not actually an image)
+            corrupt_img_path = Path(temp_dir) / "corrupt.jpg"
+            with open(corrupt_img_path, 'w') as f:
+                f.write("This is not an image file")
+            
+            image_paths = [str(valid_img_path), str(corrupt_img_path)]
+            
+            selected = sample_diverse(
+                image_paths=image_paths,
+                target_count=1,
+                show_progress=True
+            )
+            
+            # Should return the one valid image
+            assert len(selected) == 1
+            assert selected[0] == str(valid_img_path)
+            
+            # Check that error was reported
+            captured = capsys.readouterr()
+            assert "Warning" in captured.out
+            assert "Image processing failed" in captured.out
+    
+    def test_all_invalid_images(self, capsys):
+        """Test behavior when all images are invalid."""
+        invalid_paths = [
+            "/nonexistent/path/image1.jpg",
+            "/nonexistent/path/image2.jpg",
+            "/nonexistent/path/image3.jpg"
+        ]
+        
+        selected = sample_diverse(
+            image_paths=invalid_paths,
+            target_count=2,
+            show_progress=True
+        )
+        
+        # Should return empty list when no valid images
+        assert len(selected) == 0
+        
+        # Check that warnings were printed
+        captured = capsys.readouterr()
+        assert "Warning" in captured.out
+        assert "could not be processed" in captured.out
         assert all(Path(path).exists() for path in selected)
     
     def test_select_distinct_exact_count(self, temp_images):
