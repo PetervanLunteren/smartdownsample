@@ -6,7 +6,7 @@
 1. Contains more images than you need for training, and  
 2. Has a high level of redundancy
 
-The tool selects representative subsets while preserving diversity. In many ML workflows, majority classes can have hundreds of thousands of images. These often need to be reduced for efficiency or class balance—without discarding too much valuable variation.  
+The tool selects representative subsets while preserving diversity by distilling images to tiny signatures of visual features. In many ML workflows, majority classes can have hundreds of thousands of images. These often need to be reduced for efficiency or class balance—without discarding too much valuable variation.  
 
 Perfect deduplication would require heavy computations and isn’t feasible at scale. Instead, `smartdownsample` offers a practical compromise: fast downsampling that keeps diversity with minimal overhead, cutting processing time from hours (or days) to minutes.  
 
@@ -49,8 +49,10 @@ selected = sample_diverse(
 | `show_progress` | `True` | Display progress bars during processing |
 | `random_seed` | `42` | Random seed for reproducible bucket selection |
 | `show_summary` | `True` | Print bucket statistics and distribution summary |
-| `show_distribution` | `False` | Show bucket distribution bar chart |
-| `show_thumbnails` | `False` | Show 5x5 thumbnail grids for each bucket |
+| `save_distribution` | `None` | Path to save distribution chart as PNG (creates directories if needed) |
+| `save_thumbnails` | `None` | Path to save thumbnail grids as PNG (creates directories if needed) |
+| `image_loading_errors` | `"raise"` | How to handle image loading errors: `"raise"` (fail immediately) or `"skip"` (continue with remaining images) |
+| `return_indices` | `False` | Return 0-based indices instead of paths (refers to original input list order) |
 
 ## How it works
 
@@ -74,16 +76,15 @@ The algorithm balances speed and diversity in four steps:
    - Fill the remaining quota proportionally from larger buckets  
 
 4. **Within-bucket selection**  
-   - Buckets are kept in their natural folder order  
-   - This preserves any inherent structure in the dataset (e.g., locations, events, sequences, etc)  
+   - Buckets are kept in their natural folder order to preserve any inherent structure in the dataset (e.g., locations, events, sequences, etc)  
    - Images are then sampled at regular intervals (every stride-th image) until the target count is reached, ensuring a systematic spread across the bucket  
 
-5. **Optionally show distribution chart**  
+5. **Save distribution chart** (optional)
    - Vertical bar chart of kept vs. excluded images per bucket  
 <img src="https://github.com/PetervanLunteren/EcoAssist-metadata/blob/main/smartdown-sample/bar.png" width="100%">
 
 
-6. **Optionally show thumbnail grids**  
+6. **Save thumbnail grids** (optional)
    - 5×5 grids from each bucket, for quick visual review  
 <img src="https://github.com/PetervanLunteren/EcoAssist-metadata/blob/main/smartdown-sample/grid.png" width="100%">
 
