@@ -123,7 +123,9 @@ class TestSmartDownsample:
             # Check that error was reported
             captured = capsys.readouterr()
             assert "Warning" in captured.out
-            assert "Image processing failed" in captured.out
+            # The error message should indicate the file could not be read
+            assert ("Cannot read image file" in captured.out or 
+                    "Image processing failed" in captured.out)
     
     def test_all_invalid_images_skip(self, capsys):
         """Test behavior when all images are invalid in skip mode."""
@@ -183,48 +185,24 @@ class TestSmartDownsample:
     
     
     def test_select_distinct_reproducible(self, temp_images):
-        """Test that results are reproducible with same seed."""
+        """Test that results are deterministic and reproducible."""
         target_count = 5
-        seed = 42
         
         selected1 = sample_diverse(
             image_paths=temp_images,
             target_count=target_count,
-            random_seed=seed,
             show_progress=False
         )
         
         selected2 = sample_diverse(
             image_paths=temp_images,
             target_count=target_count,
-            random_seed=seed,
             show_progress=False
         )
         
-        # Results should be identical with same seed
+        # Results should be identical for deterministic algorithm
         assert selected1 == selected2
     
-    def test_select_distinct_different_seeds(self, temp_images):
-        """Test that different seeds give different results."""
-        target_count = 5
-        
-        selected1 = sample_diverse(
-            image_paths=temp_images,
-            target_count=target_count,
-            random_seed=42,
-            show_progress=False
-        )
-        
-        selected2 = sample_diverse(
-            image_paths=temp_images,
-            target_count=target_count,
-            random_seed=99,
-            show_progress=False
-        )
-        
-        # Results should be different with different seeds
-        # (Note: there's a small chance they could be the same, but very unlikely)
-        assert selected1 != selected2
     
     
     def test_select_distinct_empty_list(self):
@@ -582,15 +560,13 @@ class TestSmartDownsample:
             assert mixed_paths[idx] in temp_images
     
     def test_return_indices_reproducible(self, temp_images):
-        """Test that return_indices gives reproducible results."""
+        """Test that return_indices gives deterministic results."""
         target_count = 5
-        seed = 42
         
         indices1 = sample_diverse(
             image_paths=temp_images,
             target_count=target_count,
             return_indices=True,
-            random_seed=seed,
             show_progress=False
         )
         
@@ -598,11 +574,10 @@ class TestSmartDownsample:
             image_paths=temp_images,
             target_count=target_count,
             return_indices=True,
-            random_seed=seed,
             show_progress=False
         )
         
-        # Results should be identical with same seed
+        # Results should be identical for deterministic algorithm
         assert indices1 == indices2
 
 

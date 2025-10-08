@@ -15,6 +15,28 @@ import os
 
 warnings.filterwarnings('ignore')
 
+def _hierarchical_natsort(paths: List[Union[str, Path]]) -> List[str]:
+    """
+    Sort paths hierarchically with natural ordering.
+    
+    Files from different directories are not interleaved. Within each directory,
+    files are sorted naturally, then subdirectories are processed recursively.
+    
+    Args:
+        paths: List of file paths
+        
+    Returns:
+        List of sorted path strings
+    """
+    # Convert to Path objects for easier manipulation
+    path_objects = [Path(p) for p in paths]
+    
+    # Sort based on path parts (directory hierarchy) with natural sorting
+    sorted_paths = natsorted(path_objects, key=lambda p: p.parts)
+    
+    # Convert back to strings
+    return [str(p) for p in sorted_paths]
+
 # Path validation helper
 def _validate_png_path(path: Optional[str], param_name: str) -> Optional[Path]:
     """
@@ -296,7 +318,6 @@ def sample_diverse(
     hash_size: int = 8,
     n_workers: Optional[int] = None,
     show_progress: bool = True,
-    random_seed: int = 42,
     show_summary: bool = True,
     save_distribution: Optional[str] = None,
     save_thumbnails: Optional[str] = None,
@@ -318,7 +339,6 @@ def sample_diverse(
         hash_size: Size of perceptual hash (8 is fast and good enough)
         n_workers: Number of parallel workers (default: 4)
         show_progress: Whether to show progress bars
-        random_seed: Random seed for reproducibility
         show_summary: Whether to print bucket distribution summary (default: True)
         save_distribution: Path to save distribution chart as PNG (creates dirs if needed) (default: None)
         save_thumbnails: Path to save thumbnail grids as PNG (creates dirs if needed) (default: None)
@@ -336,8 +356,6 @@ def sample_diverse(
         >>> # Also fast for large selections like 23,000 from 24,000 images  
         >>> selected = sample_diverse(image_paths, target_count=23000)
     """
-    
-    np.random.seed(random_seed)
     
     # Validate image_loading_errors parameter
     if image_loading_errors not in ["raise", "skip"]:
@@ -371,10 +389,10 @@ def sample_diverse(
     if show_progress:
         print(f"Selecting {target_count} from {n_images} images...")
     
-    # Sort all input paths naturally to preserve camera/folder structure globally
+    # Sort all input paths hierarchically to preserve camera/folder structure
     if show_progress:
         print(" - Sorting paths...")
-    sorted_image_paths = natsorted([str(p) for p in image_paths])
+    sorted_image_paths = _hierarchical_natsort(image_paths)
     
     # Step 1: Compute hashes in parallel
     

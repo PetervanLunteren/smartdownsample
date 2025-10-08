@@ -47,7 +47,6 @@ selected = sample_diverse(
 | `hash_size` | `8` | Perceptual hash size (8 recommended) |
 | `n_workers` | `4` | Number of parallel workers for hash computation |
 | `show_progress` | `True` | Display progress bars during processing |
-| `random_seed` | `42` | Random seed for reproducible bucket selection |
 | `show_summary` | `True` | Print bucket statistics and distribution summary |
 | `save_distribution` | `None` | Path to save distribution chart as PNG (creates directories if needed) |
 | `save_thumbnails` | `None` | Path to save thumbnail grids as PNG (creates directories if needed) |
