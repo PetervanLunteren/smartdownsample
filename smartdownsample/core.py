@@ -66,10 +66,6 @@ def _validate_png_path(path: Optional[str], param_name: str) -> Optional[Path]:
     if path_obj.suffix.lower() != '.png':
         raise ValueError(f"{param_name} must be a .png file path, got: {path}")
     
-    # Check if file already exists
-    if path_obj.exists():
-        raise ValueError(f"File already exists: {path}")
-    
     # Create parent directories if they don't exist
     path_obj.parent.mkdir(parents=True, exist_ok=True)
     

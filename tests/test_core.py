@@ -424,19 +424,27 @@ class TestSmartDownsample:
                 )
     
     def test_save_file_already_exists(self, temp_images):
-        """Test that existing files raise error."""
+        """Test that existing files are silently overwritten."""
         with tempfile.TemporaryDirectory() as temp_dir:
             output_path = Path(temp_dir) / "existing.png"
             # Create existing file
             output_path.write_text("existing content")
             
-            with pytest.raises(ValueError, match="File already exists"):
-                sample_diverse(
-                    image_paths=temp_images,
-                    target_count=5,
-                    save_distribution=str(output_path),
-                    show_progress=False
-                )
+            # This should now succeed and overwrite the file
+            selected = sample_diverse(
+                image_paths=temp_images,
+                target_count=5,
+                save_distribution=str(output_path),
+                show_progress=False
+            )
+            
+            # Verify file was overwritten (should be a PNG now, not text)
+            assert output_path.exists()
+            assert len(selected) == 5
+            # Check it's a valid PNG by reading first bytes
+            with open(output_path, 'rb') as f:
+                magic = f.read(8)
+                assert magic[:4] == b'\x89PNG'  # PNG magic number
     
     def test_save_both_charts(self, temp_images):
         """Test saving both distribution and thumbnails."""

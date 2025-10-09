@@ -7,7 +7,7 @@ perfect for camera trap data and machine learning workflows.
 
 from .core import sample_diverse
 
-__version__ = "1.9.1"
+__version__ = "1.9.2"
 __author__ = "Peter van Lunteren"
 
 __all__ = ["sample_diverse"]
