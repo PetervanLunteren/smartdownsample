@@ -105,9 +105,14 @@ Approximate times on an NVIDIA RTX 3080 Ti.
 
 | Dataset size | Embedding time (GPU) | Clustering | Total |
 |-------------|---------------------|------------|-------|
-| 446 images | ~1s | instant | ~2s |
+| 1,000 images | ~1s | instant | ~2s |
 | 10,000 images | ~15s | ~1s | ~20s |
 | 100,000 images | ~2.5 min | ~10s | ~3 min |
+| 1,000,000 images | ~25 min | ~2 min | ~30 min |
+
+## TODO
+
+- [ ] Stream embeddings in batches instead of holding all transformed tensors in memory before inference. Current approach stores ~600KB per image, which won't scale to 500K+ images.
 
 ## License
 

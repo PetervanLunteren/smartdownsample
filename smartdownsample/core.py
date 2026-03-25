@@ -9,7 +9,7 @@ import re
 import numpy as np
 from PIL import Image
 from pathlib import Path
-from typing import List, Union, Optional, Tuple, Dict, Any
+from typing import List, Union, Optional, Dict, Any
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor
 import warnings
@@ -18,7 +18,6 @@ from natsort import natsorted
 import torch
 import torchvision.transforms as T
 from sklearn.cluster import AgglomerativeClustering
-from sklearn.metrics import pairwise_distances
 
 warnings.filterwarnings('ignore')
 
@@ -542,39 +541,39 @@ def _plot_cluster_thumbnails(cluster_stats: List[Dict[str, Any]], viz_data: Dict
     else:
         cluster_iter = enumerate(sorted_clusters)
 
+    def create_grid(images, max_images=25):
+        if not images:
+            return np.ones((300, 300, 3), dtype=np.uint8) * 220
+        if len(images) > max_images:
+            rng = np.random.RandomState(SEED)
+            indices = rng.choice(len(images), max_images, replace=False)
+            sample_images = [images[i] for i in sorted(indices)]
+        else:
+            sample_images = images
+        grid_img = np.ones((300, 300, 3), dtype=np.uint8) * 255
+        thumb_size = 60
+        for idx, img_path in enumerate(sample_images[:25]):
+            try:
+                with Image.open(img_path) as img:
+                    if img.mode != 'RGB':
+                        img = img.convert('RGB')
+                    img_thumb = img.resize((thumb_size, thumb_size), Image.Resampling.LANCZOS)
+                    img_array = np.array(img_thumb, dtype=np.uint8)
+                    row_pos = idx // 5
+                    col_pos = idx % 5
+                    y_s = row_pos * thumb_size
+                    x_s = col_pos * thumb_size
+                    grid_img[y_s:y_s + thumb_size, x_s:x_s + thumb_size] = img_array
+            except Exception:
+                continue
+        return grid_img
+
     for cluster_idx, cluster_data in cluster_iter:
         original_cluster_idx = len(sorted_clusters) - 1 - cluster_idx
         cluster_images = []
         for path_idx, assigned_cluster in enumerate(cluster_assignments):
             if assigned_cluster == original_cluster_idx:
                 cluster_images.append(all_paths[path_idx])
-
-        def create_grid(images, max_images=25):
-            if not images:
-                return np.ones((300, 300, 3), dtype=np.uint8) * 220
-            if len(images) > max_images:
-                rng = np.random.RandomState(SEED)
-                indices = rng.choice(len(images), max_images, replace=False)
-                sample_images = [images[i] for i in sorted(indices)]
-            else:
-                sample_images = images
-            grid_img = np.ones((300, 300, 3), dtype=np.uint8) * 255
-            thumb_size = 60
-            for idx, img_path in enumerate(sample_images[:25]):
-                try:
-                    with Image.open(img_path) as img:
-                        if img.mode != 'RGB':
-                            img = img.convert('RGB')
-                        img_thumb = img.resize((thumb_size, thumb_size), Image.Resampling.LANCZOS)
-                        img_array = np.array(img_thumb, dtype=np.uint8)
-                        row_pos = idx // 5
-                        col_pos = idx % 5
-                        y_s = row_pos * thumb_size
-                        x_s = col_pos * thumb_size
-                        grid_img[y_s:y_s + thumb_size, x_s:x_s + thumb_size] = img_array
-                except Exception:
-                    continue
-            return grid_img
 
         row = cluster_idx // cols
         col = cluster_idx % cols
