@@ -33,25 +33,6 @@ selected = sample_diverse(
 )
 ```
 
-```python
-# Return indices instead of paths
-indices = sample_diverse(
-    image_paths=my_image_list,
-    target_count=50000,
-    return_indices=True
-)
-```
-
-```python
-# Save visualizations
-selected = sample_diverse(
-    image_paths=my_image_list,
-    target_count=50000,
-    save_distribution="output/distribution.png",
-    save_thumbnails="output/thumbnails.png"
-)
-```
-
 ## Parameters
 
 | Parameter | Default | Description |
