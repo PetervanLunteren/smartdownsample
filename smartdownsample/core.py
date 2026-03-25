@@ -153,6 +153,10 @@ def _compute_embeddings(image_paths, n_workers, show_progress, image_loading_err
     """
     Compute DINOv2 embeddings for a list of image paths.
 
+    Loads and infers in batches to keep memory usage constant regardless of
+    dataset size. Only the final embeddings (N x 384 floats = ~1.5KB per image)
+    are kept in memory, not the full image tensors (~600KB each).
+
     Returns:
         valid_paths: List of paths that were successfully processed
         embeddings: numpy array of shape (N, 384), L2-normalized
@@ -160,46 +164,46 @@ def _compute_embeddings(image_paths, n_workers, show_progress, image_loading_err
     """
     model, device, transform = _get_model()
 
-    # Load and transform images in parallel
     valid_paths = []
-    tensors = []
     failed_paths = []
-
-    with ThreadPoolExecutor(max_workers=n_workers) as executor:
-        futures = [executor.submit(_load_image, path, transform, image_loading_errors)
-                   for path in image_paths]
-
-        if show_progress:
-            futures_iter = tqdm(futures, desc=" - Loading images")
-        else:
-            futures_iter = futures
-
-        for future in futures_iter:
-            path, tensor, error_msg = future.result()
-            if tensor is not None:
-                valid_paths.append(path)
-                tensors.append(tensor)
-            else:
-                failed_paths.append((path, error_msg))
-
-    if not tensors:
-        return valid_paths, np.empty((0, EMBEDDING_DIM)), failed_paths
-
-    # Batch inference
     all_embeddings = []
 
-    if show_progress:
-        n_batches = (len(tensors) + INFERENCE_BATCH_SIZE - 1) // INFERENCE_BATCH_SIZE
-        batch_iter = tqdm(range(0, len(tensors), INFERENCE_BATCH_SIZE),
-                         desc=" - Computing embeddings", total=n_batches)
-    else:
-        batch_iter = range(0, len(tensors), INFERENCE_BATCH_SIZE)
+    # Process images in batches to avoid holding all tensors in memory
+    n_total = len(image_paths)
+    n_batches = (n_total + INFERENCE_BATCH_SIZE - 1) // INFERENCE_BATCH_SIZE
 
-    with torch.no_grad():
-        for start in batch_iter:
-            batch = torch.stack(tensors[start:start + INFERENCE_BATCH_SIZE]).to(device)
-            features = model(batch)
-            all_embeddings.append(features.cpu().numpy())
+    if show_progress:
+        batch_iter = tqdm(range(n_batches), desc=" - Computing embeddings")
+    else:
+        batch_iter = range(n_batches)
+
+    for batch_idx in batch_iter:
+        start = batch_idx * INFERENCE_BATCH_SIZE
+        end = min(start + INFERENCE_BATCH_SIZE, n_total)
+        batch_paths = image_paths[start:end]
+
+        # Load images for this batch in parallel
+        batch_tensors = []
+        with ThreadPoolExecutor(max_workers=n_workers) as executor:
+            futures = [executor.submit(_load_image, path, transform, image_loading_errors)
+                       for path in batch_paths]
+            for future in futures:
+                path, tensor, error_msg = future.result()
+                if tensor is not None:
+                    valid_paths.append(path)
+                    batch_tensors.append(tensor)
+                else:
+                    failed_paths.append((path, error_msg))
+
+        # Run inference on this batch and discard tensors immediately
+        if batch_tensors:
+            with torch.no_grad():
+                batch = torch.stack(batch_tensors).to(device)
+                features = model(batch)
+                all_embeddings.append(features.cpu().numpy())
+
+    if not all_embeddings:
+        return valid_paths, np.empty((0, EMBEDDING_DIM)), failed_paths
 
     embeddings = np.vstack(all_embeddings)
 
