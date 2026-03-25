@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "smartdownsample"
-version = "1.9.2"
+version = "2.0.0"
 description = "Smart image downsampling for image classification datasets"
 readme = "README.md"
 license = {text = "MIT"}
@@ -12,7 +12,7 @@ authors = [
     {name = "Peter van Lunteren"}
 ]
 keywords = [
-    "image", "downsampling", "camera-trap", "machine-learning", 
+    "image", "downsampling", "camera-trap", "machine-learning",
     "computer-vision", "diversity", "deduplication"
 ]
 classifiers = [
@@ -34,7 +34,9 @@ requires-python = ">=3.8"
 dependencies = [
     "numpy>=1.21.0",
     "Pillow>=8.0.0",
-    "imagehash>=4.2.0",
+    "torch>=2.0.0",
+    "torchvision>=0.15.0",
+    "scikit-learn>=1.0.0",
     "tqdm>=4.62.0",
     "natsort>=8.0.0",
     "matplotlib>=3.5.0",

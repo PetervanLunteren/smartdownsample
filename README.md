@@ -1,16 +1,16 @@
-# smartdownsample  
+# smartdownsample
 
-**Fast and lightweight downsampling for large image datasets**  
+**Embedding-based diverse downsampling for large image datasets**
 
-`smartdownsample` is built for image collections that:  
-1. Contains more images than you need for training, and  
-2. Has a high level of redundancy
+`smartdownsample` selects representative subsets from large image collections while preserving visual diversity. It uses DINOv2 embeddings and agglomerative clustering to group visually similar images, then samples across clusters to maximize variety.
 
-The tool selects representative subsets while preserving diversity by distilling images to tiny signatures of visual features. In many ML workflows, majority classes can have hundreds of thousands of images. These often need to be reduced for efficiency or class balance—without discarding too much valuable variation.  
+Built for image collections that:
+1. Contain more images than you need for training, and
+2. Have a high level of redundancy (e.g., many near-duplicate or visually similar frames)
 
-Perfect deduplication would require heavy computations and isn’t feasible at scale. Instead, `smartdownsample` offers a practical compromise: fast downsampling that keeps diversity with minimal overhead, cutting processing time from hours (or days) to minutes.  
+In many ML workflows, majority classes can have hundreds of thousands of images. These often need to be reduced for efficiency or class balance, without discarding too much valuable variation. `smartdownsample` offers a practical solution: fast downsampling that keeps diversity, cutting processing time from hours (or days) to minutes.
 
-If you need mathematically optimal results, this isn’t the right fit. But if you want a simple, effective alternative that outperforms random sampling, `smartdownsample` is designed for you.  
+This approach builds on work by Dante Wasmuht and Peter Bermant at [Conservation X Labs](https://conservationxlabs.com/).
 
 ## Installation
 
@@ -18,23 +18,37 @@ If you need mathematically optimal results, this isn’t the right fit. But if y
 pip install smartdownsample
 ```
 
+Requires Python >= 3.8. GPU recommended but not required (falls back to CPU).
+
+Note: `pip install smartdownsample` installs CPU-only PyTorch. For GPU support, install the CUDA version of PyTorch first ([pytorch.org](https://pytorch.org/get-started/locally/)).
+
 ## Usage
 
 ```python
 from smartdownsample import sample_diverse
 
-# List of image paths
-my_image_list = [
-    "path/to/img1.jpg",
-    "path/to/img2.jpg",
-    "path/to/img3.jpg",
-    # ...
-]
-
-# Basic usage
 selected = sample_diverse(
     image_paths=my_image_list,
     target_count=50000
+)
+```
+
+```python
+# Return indices instead of paths
+indices = sample_diverse(
+    image_paths=my_image_list,
+    target_count=50000,
+    return_indices=True
+)
+```
+
+```python
+# Save visualizations
+selected = sample_diverse(
+    image_paths=my_image_list,
+    target_count=50000,
+    save_distribution="output/distribution.png",
+    save_thumbnails="output/thumbnails.png"
 )
 ```
 
@@ -44,10 +58,10 @@ selected = sample_diverse(
 |-----------|---------|-------------|
 | `image_paths` | Required | List of image file paths (str or Path objects) |
 | `target_count` | Required | Exact number of images to select |
-| `hash_size` | `8` | Perceptual hash size (8 recommended) |
-| `n_workers` | `4` | Number of parallel workers for hash computation |
+| `distance_threshold` | `0.5` | Cosine distance threshold for clustering. Lower = more clusters (stricter). Higher = fewer clusters (more lenient). |
+| `n_workers` | `4` | Number of parallel workers for image loading |
 | `show_progress` | `True` | Display progress bars during processing |
-| `show_summary` | `True` | Print bucket statistics and distribution summary |
+| `show_summary` | `True` | Print cluster statistics and distribution summary |
 | `save_distribution` | `None` | Path to save distribution chart as PNG (creates directories if needed) |
 | `save_thumbnails` | `None` | Path to save thumbnail grids as PNG (creates directories if needed) |
 | `image_loading_errors` | `"raise"` | How to handle image loading errors: `"raise"` (fail immediately) or `"skip"` (continue with remaining images) |
@@ -55,39 +69,46 @@ selected = sample_diverse(
 
 ## How it works
 
-The algorithm balances speed and diversity in four steps:
+The algorithm has four steps:
 
-1. **Feature extraction**  
-   Each image is reduced to a compact set of visual features:  
-   - DHash (`2 bits`) → structure/edges  
-   - AHash (`1 bit`) → brightness/contrast  
-   - Color variance (`1 bit`) → grayscale vs. color  
-   - Overall brightness (`1 bit`) → dark vs. bright  
-   - Average color (`2 bits`) → dominant scene color (red/green/blue/neutral)  
+1. **Embedding extraction**
+   Each image is passed through DINOv2 ViT-S/14 to produce a 384-dimensional embedding vector that captures semantic visual features (subjects, backgrounds, composition, lighting). Embeddings are L2-normalized. The model is loaded once and cached for subsequent calls.
 
-2. **Bucket grouping**  
-   Images are sorted into "similarity buckets" based on the visual features extracted at step 1.  
-   - At most 128 buckets are possible (4×2×2×2×4 feature splits).  
-   - In practice, most datasets produce only a few dozen buckets, depending on their diversity.  
+2. **Clustering**
+   Images are grouped using agglomerative clustering (cosine distance, average linkage) with a fixed distance threshold. The number of clusters reflects the natural visual structure of the data, not the selection budget. This means larger clusters (common visual patterns) get proportionally more images in the selection, while small clusters (rare/unique images) are still guaranteed representation.
 
-3. **Selection across buckets**  
-   - Ensure at least one image per bucket (diversity first)  
-   - Fill the remaining quota proportionally from larger buckets  
+3. **Divide-and-conquer scaling** (for large datasets)
 
-4. **Within-bucket selection**  
-   - Buckets are kept in their natural folder order to preserve any inherent structure in the dataset (e.g., locations, events, sequences, etc)  
-   - Images are then sampled at regular intervals (every stride-th image) until the target count is reached, ensuring a systematic spread across the bucket  
+   Clustering all images at once requires comparing every pair. For 10,000 images that's 100 million comparisons, and for 1,000,000 images that's 1 trillion. Instead, for datasets larger than 2,000 images, clustering is done in stages:
+
+   1. Shuffle the images randomly and split them into groups of ~2,000.
+   2. Cluster each group independently (much smaller distance matrices).
+   3. From each cluster within each group, pick the 5 most central images as representatives.
+   4. Re-cluster all the representatives together. This merges clusters that were separated by the random split, e.g., visually similar images that ended up in different groups now get reunited.
+   5. Every image inherits the final cluster ID of its representative.
+
+   The random shuffle ensures each group is a representative mix. The re-clustering stitches it back together. The result is roughly the same as clustering everything at once, but at a fraction of the cost.
+
+4. **Cluster-aware sampling**
+   - Phase 1 (diversity): Take the most central image (medoid) from each cluster, guaranteeing every visual group is represented.
+   - Phase 2 (proportional fill): Distribute the remaining budget across clusters proportionally to their size using largest-remainder allocation. This ensures fair representation. A cluster with twice as many images gets twice as many selections, without rounding bias toward the largest clusters. Within each cluster, images are selected by centrality rank (most representative first).
 
 5. **Save distribution chart** (optional)
-   - Vertical bar chart of kept vs. excluded images per bucket  
-<img src="https://github.com/PetervanLunteren/EcoAssist-metadata/blob/main/smartdown-sample/bar.png" width="100%">
-
+   - Vertical bar chart of kept vs. excluded images per cluster
 
 6. **Save thumbnail grids** (optional)
-   - 5×5 grids from each bucket, for quick visual review  
-<img src="https://github.com/PetervanLunteren/EcoAssist-metadata/blob/main/smartdown-sample/grid.png" width="100%">
+   - 5x5 grids from each cluster, for quick visual review
 
+## Performance
+
+Approximate times on an NVIDIA RTX 3080 Ti.
+
+| Dataset size | Embedding time (GPU) | Clustering | Total |
+|-------------|---------------------|------------|-------|
+| 446 images | ~1s | instant | ~2s |
+| 10,000 images | ~15s | ~1s | ~20s |
+| 100,000 images | ~2.5 min | ~10s | ~3 min |
 
 ## License
 
-MIT License → see [LICENSE file](https://github.com/PetervanLunteren/smartdownsample/blob/main/LICENSE).
+MIT License, see [LICENSE file](https://github.com/PetervanLunteren/smartdownsample/blob/main/LICENSE).

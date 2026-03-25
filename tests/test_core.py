@@ -172,18 +172,6 @@ class TestSmartDownsample:
         # Should return all available images
         assert len(selected) == len(temp_images)
     
-    def test_select_distinct_hash_size(self, temp_images):
-        """Test different hash sizes."""
-        selected = sample_diverse(
-            image_paths=temp_images,
-            target_count=5,
-            hash_size=4,
-            show_progress=False
-        )
-        
-        assert len(selected) == 5
-    
-    
     def test_select_distinct_reproducible(self, temp_images):
         """Test that results are deterministic and reproducible."""
         target_count = 5
@@ -240,18 +228,6 @@ class TestSmartDownsample:
         
         assert len(selected) == 5
         assert all(isinstance(path, str) for path in selected)  # Should return strings
-    
-    def test_select_distinct_hash_sizes(self, temp_images):
-        """Test different hash sizes."""
-        for hash_size in [4, 6, 8, 10]:
-            selected = sample_diverse(
-                image_paths=temp_images,
-                target_count=5,
-                hash_size=hash_size,
-                show_progress=False
-            )
-            
-            assert len(selected) == 5
     
     def test_select_distinct_n_workers(self, temp_images):
         """Test that n_workers parameter works without errors."""
