@@ -94,3 +94,7 @@ Approximate times on an NVIDIA RTX 3080 Ti.
 ## License
 
 MIT License, see [LICENSE file](https://github.com/PetervanLunteren/smartdownsample/blob/main/LICENSE).
+
+## TODO
+- [ ] The thumbnail plots can get very large (several dozen MB). Perhaps we whould find a solution where we just show a max of 10*10 clusters. Its just for visual check anyways, so no need to show all clusters.
+- [ ] The distribution plots x axis ticks overlap. Remove those, they are redundant. Its about the main reg/green idea anyways. 
