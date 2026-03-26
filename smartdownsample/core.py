@@ -328,11 +328,11 @@ def _divide_and_conquer_cluster(embeddings, distance_threshold=DISTANCE_THRESHOL
         chunk_labels.append(labels)
         chunk_memberships.append((idx, membership))
 
-    # Re-cluster all representative points
+    # Re-cluster all representative points (recursively if still too large)
     rep_embeddings = np.vstack(all_rep_embeddings)
     if show_progress:
         print(f" - Re-clustering {len(rep_embeddings):,} representative points...")
-    rep_labels = _cluster_with_threshold(rep_embeddings, threshold)
+    rep_labels = _divide_and_conquer_cluster(rep_embeddings, distance_threshold=threshold, show_progress=show_progress)
 
     # Build mapping: global_index -> final_cluster_id for representatives
     rep_label_map = {}

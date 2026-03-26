@@ -98,3 +98,4 @@ MIT License, see [LICENSE file](https://github.com/PetervanLunteren/smartdownsam
 ## TODO
 - [ ] The thumbnail plots can get very large (several dozen MB). Perhaps we whould find a solution where we just show a max of 10*10 clusters. Its just for visual check anyways, so no need to show all clusters.
 - [ ] The distribution plots x axis ticks overlap. Remove those, they are redundant. Its about the main reg/green idea anyways. 
+- [ ] the in bucket assignment, how does it choose which ones to keep and which ones to exclude? Investigate. Can we improve this? 
