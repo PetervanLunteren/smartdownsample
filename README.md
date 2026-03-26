@@ -70,6 +70,8 @@ The algorithm has four steps:
 
    The random shuffle ensures each group is a representative mix. The re-clustering stitches it back together. The result is roughly the same as clustering everything at once, but at a fraction of the cost.
 
+   If the representative set is still too large after several rounds (very large datasets, 500K+), the final merging step uses MiniBatchKMeans instead of agglomerative clustering. KMeans scales linearly because it doesn't build a pairwise distance matrix. The earlier rounds still use full agglomerative clustering where the real grouping happens, so the impact on quality is minimal.
+
 4. **Cluster-aware sampling**
    - Phase 1 (diversity): Take the most central image (medoid) from each cluster, guaranteeing every visual group is represented.
    - Phase 2 (proportional fill): Distribute the remaining budget across clusters proportionally to their size using largest-remainder allocation. This ensures fair representation. A cluster with twice as many images gets twice as many selections, without rounding bias toward the largest clusters. Within each cluster, images are selected by centrality rank (most representative first).

@@ -281,11 +281,25 @@ def _divide_and_conquer_cluster(embeddings, distance_threshold=DISTANCE_THRESHOL
     n = len(embeddings)
     threshold = distance_threshold
 
-    # Direct clustering for small datasets or max recursion depth reached
-    if n <= CHUNK_SIZE or _depth >= MAX_DEPTH:
+    # Direct clustering for small datasets
+    if n <= CHUNK_SIZE:
         if show_progress:
             print(f" - Clustering {n:,} embeddings (threshold={threshold})...")
         labels = _cluster_with_threshold(embeddings, threshold)
+        n_clusters = len(np.unique(labels))
+        if show_progress:
+            print(f" - Found {n_clusters} clusters")
+        return labels
+
+    # Max recursion depth: use MiniBatchKMeans which scales linearly (no pairwise matrix)
+    if _depth >= MAX_DEPTH:
+        from sklearn.cluster import MiniBatchKMeans
+        # Estimate cluster count: ~1 cluster per 10 images (capped at CHUNK_SIZE)
+        k = min(n // 10, CHUNK_SIZE)
+        if show_progress:
+            print(f" - Max recursion depth reached. Using MiniBatchKMeans (k={k:,}) on {n:,} embeddings...")
+        kmeans = MiniBatchKMeans(n_clusters=k, random_state=SEED, batch_size=1024)
+        labels = kmeans.fit_predict(embeddings)
         n_clusters = len(np.unique(labels))
         if show_progress:
             print(f" - Found {n_clusters} clusters")
