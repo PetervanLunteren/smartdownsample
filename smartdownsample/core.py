@@ -261,7 +261,7 @@ def _cluster_with_threshold(embeddings, threshold):
     return agg.fit_predict(embeddings)
 
 
-def _divide_and_conquer_cluster(embeddings, distance_threshold=DISTANCE_THRESHOLD, show_progress=True):
+def _divide_and_conquer_cluster(embeddings, distance_threshold=DISTANCE_THRESHOLD, show_progress=True, _depth=0):
     """
     Cluster embeddings using divide-and-conquer for scalability.
 
@@ -272,15 +272,17 @@ def _divide_and_conquer_cluster(embeddings, distance_threshold=DISTANCE_THRESHOL
     For small datasets (<= CHUNK_SIZE), clusters directly.
     For larger datasets, divides into chunks, clusters each, selects medoid
     representatives, re-clusters the representatives, and propagates labels.
+    Recursion is capped at 3 levels to guarantee termination.
 
     Returns:
         cluster_labels: numpy array of shape (N,) with cluster IDs
     """
+    MAX_DEPTH = 3
     n = len(embeddings)
     threshold = distance_threshold
 
-    # Direct clustering for small datasets
-    if n <= CHUNK_SIZE:
+    # Direct clustering for small datasets or max recursion depth reached
+    if n <= CHUNK_SIZE or _depth >= MAX_DEPTH:
         if show_progress:
             print(f" - Clustering {n:,} embeddings (threshold={threshold})...")
         labels = _cluster_with_threshold(embeddings, threshold)
@@ -332,7 +334,7 @@ def _divide_and_conquer_cluster(embeddings, distance_threshold=DISTANCE_THRESHOL
     rep_embeddings = np.vstack(all_rep_embeddings)
     if show_progress:
         print(f" - Re-clustering {len(rep_embeddings):,} representative points...")
-    rep_labels = _divide_and_conquer_cluster(rep_embeddings, distance_threshold=threshold, show_progress=show_progress)
+    rep_labels = _divide_and_conquer_cluster(rep_embeddings, distance_threshold=threshold, show_progress=show_progress, _depth=_depth + 1)
 
     # Build mapping: global_index -> final_cluster_id for representatives
     rep_label_map = {}
