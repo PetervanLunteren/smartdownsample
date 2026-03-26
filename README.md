@@ -73,8 +73,8 @@ The algorithm has four steps:
    If the representative set is still too large after several rounds (very large datasets, 500K+), the final merging step uses MiniBatchKMeans instead of agglomerative clustering. KMeans scales linearly because it doesn't build a pairwise distance matrix. The earlier rounds still use full agglomerative clustering where the real grouping happens, so the impact on quality is minimal.
 
 4. **Cluster-aware sampling**
-   - Phase 1 (diversity): Take the most central image (medoid) from each cluster, guaranteeing every visual group is represented.
-   - Phase 2 (proportional fill): Distribute the remaining budget across clusters proportionally to their size using largest-remainder allocation. This ensures fair representation. A cluster with twice as many images gets twice as many selections, without rounding bias toward the largest clusters. Within each cluster, images are selected by centrality rank (most representative first).
+   - Budget allocation: every cluster gets at least 1 image, then the remaining budget is distributed proportionally to cluster size using largest-remainder allocation. A cluster with twice as many images gets twice as many selections.
+   - Within-cluster selection: uses farthest-point sampling to maximize spread. Starts with the most central image, then iteratively picks the image farthest from all already-selected images. This ensures maximum visual diversity within each cluster's allocation.
 
 5. **Save distribution chart** (optional)
    - Vertical bar chart of kept vs. excluded images per cluster
@@ -97,7 +97,3 @@ Approximate times on an NVIDIA RTX 3080 Ti.
 
 MIT License, see [LICENSE file](https://github.com/PetervanLunteren/smartdownsample/blob/main/LICENSE).
 
-## TODO
-- [ ] The thumbnail plots can get very large (several dozen MB). Perhaps we whould find a solution where we just show a max of 10*10 clusters. Its just for visual check anyways, so no need to show all clusters.
-- [ ] The distribution plots x axis ticks overlap. Remove those, they are redundant. Its about the main reg/green idea anyways. 
-- [ ] the in bucket assignment, how does it choose which ones to keep and which ones to exclude? Investigate. Can we improve this? 

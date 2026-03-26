@@ -388,97 +388,128 @@ def _divide_and_conquer_cluster(embeddings, distance_threshold=DISTANCE_THRESHOL
 
 # --- Cluster-aware sampling ---
 
+def _farthest_point_sample(embeddings, indices, count):
+    """
+    Select 'count' points from a cluster using farthest-point sampling.
+
+    Starts with the most central point (closest to centroid), then iteratively
+    picks the point farthest from all already-selected points. This maximizes
+    spread within the cluster.
+
+    Args:
+        embeddings: full embedding array (N, D)
+        indices: array of indices into embeddings for this cluster
+        count: number of points to select
+
+    Returns:
+        list of selected indices (into the full embeddings array)
+    """
+    cluster_pts = embeddings[indices]
+    n = len(indices)
+
+    if count >= n:
+        return indices.tolist()
+
+    # Start with the most central point
+    centroid = cluster_pts.mean(axis=0, keepdims=True)
+    dists_to_centroid = np.linalg.norm(cluster_pts - centroid, axis=1)
+    first = np.argmin(dists_to_centroid)
+
+    selected_local = [first]
+    # Track min distance from each point to any selected point
+    min_dists = np.linalg.norm(cluster_pts - cluster_pts[first], axis=1)
+
+    for _ in range(count - 1):
+        # Pick the point farthest from all selected points
+        next_idx = np.argmax(min_dists)
+        selected_local.append(next_idx)
+        # Update min distances
+        new_dists = np.linalg.norm(cluster_pts - cluster_pts[next_idx], axis=1)
+        min_dists = np.minimum(min_dists, new_dists)
+
+    return [indices[i] for i in selected_local]
+
+
 def _cluster_aware_sample(embeddings, cluster_labels, target_count):
     """
     Select target_count indices, maximizing cluster diversity.
 
-    Phase 1: Take the most central image (medoid) from each cluster.
-    Phase 2: Distribute remaining quota using largest-remainder allocation
-             for fair proportional representation.
+    Phase 1: Allocate 1 slot per cluster (diversity guarantee) + proportional fill
+             using largest-remainder allocation.
+    Phase 2: Within each cluster, select images using farthest-point sampling
+             to maximize spread.
 
     Returns:
         List of selected indices (into the embeddings array)
     """
     unique_labels = np.unique(cluster_labels)
 
-    # Build cluster info: indices and centrality ranking
+    # Build cluster info
     cluster_info = {}
     for label in unique_labels:
         mask = cluster_labels == label
         indices = np.where(mask)[0]
-        cluster_pts = embeddings[indices]
-
-        # Compute centrality: distance to centroid
-        centroid = cluster_pts.mean(axis=0, keepdims=True)
-        dists = np.linalg.norm(cluster_pts - centroid, axis=1)
-        ranked = indices[np.argsort(dists)]  # Most central first
-
         cluster_info[label] = {
-            'ranked_indices': ranked,
+            'indices': indices,
             'size': len(indices),
-            'taken': 0,
         }
 
-    selected = []
-
-    # Phase 1: Take 1 medoid from each cluster (diversity guarantee)
-    # Sort clusters by size (largest first) so if we can't cover all, we cover the biggest
+    # Sort clusters by size (largest first)
     sorted_labels = sorted(cluster_info.keys(),
                            key=lambda l: cluster_info[l]['size'], reverse=True)
 
+    # Phase 1: Allocate budget across clusters
+
+    # Start with 1 per cluster (diversity guarantee)
+    allocations = {}
+    budget_used = 0
     for label in sorted_labels:
-        if len(selected) >= target_count:
+        if budget_used >= target_count:
             break
-        info = cluster_info[label]
-        selected.append(info['ranked_indices'][0])
-        info['taken'] = 1
+        allocations[label] = 1
+        budget_used += 1
 
-    remaining = target_count - len(selected)
+    remaining = target_count - budget_used
 
-    # Phase 2: Largest-remainder allocation for fair proportional distribution
+    # Distribute remaining proportionally using largest-remainder allocation
     if remaining > 0:
-        # Compute fractional shares for each cluster
         available_clusters = []
-        for label in sorted_labels:
-            info = cluster_info[label]
-            avail = info['size'] - info['taken']
+        for label in allocations:
+            avail = cluster_info[label]['size'] - allocations[label]
             if avail > 0:
                 available_clusters.append((label, avail))
 
         total_available = sum(a for _, a in available_clusters)
 
-        # Calculate floor allocation and fractional remainders
-        allocations = []
+        floor_allocations = []
         for label, avail in available_clusters:
             exact_share = (avail / total_available) * remaining
-            floor_share = int(exact_share)
+            floor_share = min(int(exact_share), avail)
             fraction = exact_share - floor_share
-            # Don't allocate more than available
-            floor_share = min(floor_share, avail)
-            allocations.append((label, floor_share, fraction, avail))
+            floor_allocations.append((label, floor_share, fraction, avail))
 
-        # Give everyone their floor allocation
-        allocated = sum(a[1] for a in allocations)
+        allocated = sum(a[1] for a in floor_allocations)
         leftover = remaining - allocated
 
-        # Distribute leftover slots one-by-one to clusters with largest fractional remainders
+        # Distribute leftover to clusters with largest fractional remainders
         if leftover > 0:
-            by_remainder = sorted(allocations, key=lambda a: a[2], reverse=True)
+            by_remainder = sorted(floor_allocations, key=lambda a: a[2], reverse=True)
             for i in range(min(leftover, len(by_remainder))):
                 label, floor_share, fraction, avail = by_remainder[i]
                 if floor_share < avail:
                     by_remainder[i] = (label, floor_share + 1, fraction, avail)
+            floor_allocations = by_remainder
 
-            allocations = by_remainder
+        for label, extra, _, _ in floor_allocations:
+            allocations[label] = allocations.get(label, 0) + extra
 
-        # Apply allocations: select images by centrality rank
-        for label, take, _, _ in allocations:
-            if take > 0:
-                info = cluster_info[label]
-                start = info['taken']
-                new_indices = info['ranked_indices'][start:start + take]
-                selected.extend(new_indices.tolist())
-                info['taken'] += take
+    # Phase 2: Within each cluster, use farthest-point sampling for maximum spread
+    selected = []
+    for label, count in allocations.items():
+        if count > 0:
+            indices = cluster_info[label]['indices']
+            chosen = _farthest_point_sample(embeddings, indices, count)
+            selected.extend(chosen)
 
     return selected
 
@@ -510,11 +541,33 @@ def _print_cluster_summary(cluster_stats: List[Dict[str, Any]]) -> None:
     print(f"{'Cluster':<10} {'Size':<8} {'Kept':<8} {'Rate':<8}")
     print("-" * 60)
 
-    for i, cluster in enumerate(sorted_clusters):
-        size = cluster['original_size']
-        kept = cluster['kept']
-        rate = f"{(kept/size)*100:.0f}%" if size > 0 else "0%"
-        print(f"#{i+1:<9} {size:<8,} {kept:<8,} {rate:<8}")
+    n = len(sorted_clusters)
+    show_top = 20
+    show_bottom = 5
+
+    if n <= show_top + show_bottom:
+        # Show all
+        for i, cluster in enumerate(sorted_clusters):
+            size = cluster['original_size']
+            kept = cluster['kept']
+            rate = f"{(kept/size)*100:.0f}%" if size > 0 else "0%"
+            print(f"#{i+1:<9} {size:<8,} {kept:<8,} {rate:<8}")
+    else:
+        # Show top 20
+        for i in range(show_top):
+            cluster = sorted_clusters[i]
+            size = cluster['original_size']
+            kept = cluster['kept']
+            rate = f"{(kept/size)*100:.0f}%" if size > 0 else "0%"
+            print(f"#{i+1:<9} {size:<8,} {kept:<8,} {rate:<8}")
+        print(f"  ... {n - show_top - show_bottom} more clusters ...")
+        # Show bottom 5
+        for i in range(n - show_bottom, n):
+            cluster = sorted_clusters[i]
+            size = cluster['original_size']
+            kept = cluster['kept']
+            rate = f"{(kept/size)*100:.0f}%" if size > 0 else "0%"
+            print(f"#{i+1:<9} {size:<8,} {kept:<8,} {rate:<8}")
 
     print("-" * 60)
     print()
@@ -542,9 +595,13 @@ def _plot_cluster_thumbnails(cluster_stats: List[Dict[str, Any]], viz_data: Dict
     cluster_assignments = viz_data['cluster_assignments']
     all_paths = viz_data['all_paths']
 
-    n_clusters = len(sorted_clusters)
-    cols = int(np.ceil(np.sqrt(n_clusters)))
-    rows = int(np.ceil(n_clusters / cols))
+    MAX_THUMBNAIL_CLUSTERS = 100
+    total_clusters = len(sorted_clusters)
+    display_clusters = sorted_clusters[:MAX_THUMBNAIL_CLUSTERS]
+    n_display = len(display_clusters)
+
+    cols = int(np.ceil(np.sqrt(n_display)))
+    rows = int(np.ceil(n_display / cols))
 
     fig, axes = plt.subplots(rows, cols, figsize=(cols * 5, rows * 6))
 
@@ -556,10 +613,10 @@ def _plot_cluster_thumbnails(cluster_stats: List[Dict[str, Any]], viz_data: Dict
         axes = axes.reshape(-1, 1)
 
     if show_progress:
-        cluster_iter = tqdm(enumerate(sorted_clusters), desc=" - Creating thumbnail grids",
-                           total=len(sorted_clusters))
+        cluster_iter = tqdm(enumerate(display_clusters), desc=" - Creating thumbnail grids",
+                           total=n_display)
     else:
-        cluster_iter = enumerate(sorted_clusters)
+        cluster_iter = enumerate(display_clusters)
 
     def create_grid(images, max_images=25):
         if not images:
@@ -608,13 +665,16 @@ def _plot_cluster_thumbnails(cluster_stats: List[Dict[str, Any]], viz_data: Dict
         ax.set_xticks([])
         ax.set_yticks([])
 
-    for i in range(n_clusters, rows * cols):
+    for i in range(n_display, rows * cols):
         row = i // cols
         col = i % cols
         axes[row, col].axis('off')
 
-    plt.suptitle('Cluster thumbnails: visual similarity groups (5x5 grid, max 25 images per cluster)',
-                 fontsize=14, y=0.98)
+    if total_clusters > MAX_THUMBNAIL_CLUSTERS:
+        title = f'Showing {MAX_THUMBNAIL_CLUSTERS} largest of {total_clusters} clusters. Each grid shows up to 25 randomly sampled images.'
+    else:
+        title = f'Showing all {total_clusters} clusters. Each grid shows up to 25 randomly sampled images.'
+    plt.suptitle(title, fontsize=14, y=0.98)
     plt.tight_layout(pad=3.0)
     plt.subplots_adjust(top=0.92, hspace=0.4)
 
@@ -650,24 +710,31 @@ def _plot_cluster_distribution(cluster_stats: List[Dict[str, Any]],
 
     sorted_clusters = sorted(cluster_stats, key=lambda x: x['original_size'], reverse=True)
 
-    cluster_names = [str(i+1) for i in range(len(sorted_clusters))]
-    kept_counts = [b['kept'] for b in sorted_clusters]
-    excluded_counts = [b['excluded'] for b in sorted_clusters]
+    MAX_DISTRIBUTION_CLUSTERS = 100
+    total_clusters = len(sorted_clusters)
+    display_clusters = sorted_clusters[:MAX_DISTRIBUTION_CLUSTERS]
+
+    kept_counts = [b['kept'] for b in display_clusters]
+    excluded_counts = [b['excluded'] for b in display_clusters]
 
     fig, ax = plt.subplots(figsize=(12, 6))
 
-    x = np.arange(len(cluster_names))
+    x = np.arange(len(display_clusters))
     width = 0.6
 
     ax.bar(x, kept_counts, width, label='Kept', color='#2E8B57', alpha=0.8)
     ax.bar(x, excluded_counts, width, bottom=kept_counts,
            label='Excluded', color='#CD5C5C', alpha=0.8)
 
-    ax.set_xlabel('Visual similarity clusters (sorted by size)')
+    ax.set_xlabel('Clusters (sorted by size)')
     ax.set_ylabel('Number of images')
-    ax.set_title('Cluster distribution: kept vs excluded')
-    ax.set_xticks(x)
-    ax.set_xticklabels(cluster_names, rotation=45, ha='right')
+    ax.tick_params(axis='x', labelbottom=False)
+
+    if total_clusters > MAX_DISTRIBUTION_CLUSTERS:
+        title = f'Showing {MAX_DISTRIBUTION_CLUSTERS} largest of {total_clusters} clusters. Bars show kept (green) vs excluded (red).'
+    else:
+        title = f'Showing all {total_clusters} clusters. Bars show kept (green) vs excluded (red).'
+    ax.set_title(title)
     ax.legend()
 
     plt.tight_layout()
