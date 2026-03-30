@@ -82,7 +82,7 @@ The algorithm has four steps:
 
 6. **Save thumbnail grids** (optional)
    - 5x5 grids from each cluster, for quick visual review
-<img src="https://github.com/user-attachments/assets/9370711e-a55b-41df-821a-dd13289c5756" width="100%">
+<img src="https://github.com/user-attachments/assets/cfa5e1fa-3a9c-40ca-b970-8fb1f35fb8ff" width="100%">
 
 ## Performance
 
@@ -98,7 +98,3 @@ Approximate times on an NVIDIA RTX 3080 Ti.
 ## License
 
 MIT License, see [LICENSE file](https://github.com/PetervanLunteren/smartdownsample/blob/main/LICENSE).
-
-## TODO
-
-- [ ] Take a look at the thumbnail generation. Perhaps we can reduce the size of the images and increase the size of the title. Perhaps a max of 5 * 5 clusters is good enough.

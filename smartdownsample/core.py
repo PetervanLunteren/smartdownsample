@@ -595,7 +595,7 @@ def _plot_cluster_thumbnails(cluster_stats: List[Dict[str, Any]], viz_data: Dict
     cluster_assignments = viz_data['cluster_assignments']
     all_paths = viz_data['all_paths']
 
-    MAX_THUMBNAIL_CLUSTERS = 100
+    MAX_THUMBNAIL_CLUSTERS = 25
     total_clusters = len(sorted_clusters)
     display_clusters = sorted_clusters[:MAX_THUMBNAIL_CLUSTERS]
     n_display = len(display_clusters)
@@ -646,10 +646,9 @@ def _plot_cluster_thumbnails(cluster_stats: List[Dict[str, Any]], viz_data: Dict
         return grid_img
 
     for cluster_idx, cluster_data in cluster_iter:
-        original_cluster_idx = len(sorted_clusters) - 1 - cluster_idx
         cluster_images = []
         for path_idx, assigned_cluster in enumerate(cluster_assignments):
-            if assigned_cluster == original_cluster_idx:
+            if assigned_cluster == cluster_idx:
                 cluster_images.append(all_paths[path_idx])
 
         row = cluster_idx // cols
@@ -657,7 +656,7 @@ def _plot_cluster_thumbnails(cluster_stats: List[Dict[str, Any]], viz_data: Dict
         ax = axes[row, col]
         grid_img = create_grid(cluster_images)
         ax.imshow(grid_img)
-        ax.set_title(str(cluster_idx + 1), fontsize=12, pad=2)
+        ax.set_title(f'#{cluster_idx + 1} ({cluster_data["original_size"]:,})', fontsize=26, pad=8)
         for spine in ax.spines.values():
             spine.set_visible(True)
             spine.set_color('lightgrey')
@@ -674,13 +673,13 @@ def _plot_cluster_thumbnails(cluster_stats: List[Dict[str, Any]], viz_data: Dict
         title = f'Showing {MAX_THUMBNAIL_CLUSTERS} largest of {total_clusters} clusters. Each grid shows up to 25 randomly sampled images.'
     else:
         title = f'Showing all {total_clusters} clusters. Each grid shows up to 25 randomly sampled images.'
-    plt.suptitle(title, fontsize=14, y=0.98)
+    plt.suptitle(title, fontsize=32, y=0.98)
     plt.tight_layout(pad=3.0)
     plt.subplots_adjust(top=0.92, hspace=0.4)
 
     if save_path:
         try:
-            plt.savefig(save_path, dpi=36, bbox_inches='tight', format='png')
+            plt.savefig(save_path, dpi=36, bbox_inches='tight', pad_inches=1.0, format='png')
             if show_progress:
                 print(f" - Saved thumbnail grids to: {save_path}")
         except Exception as e:
