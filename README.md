@@ -78,11 +78,11 @@ The algorithm has four steps:
 
 5. **Save distribution chart** (optional)
    - Vertical bar chart of kept vs. excluded images per cluster
-<img src="https://github.com/user-attachments/assets/1519ff1d-1033-460c-81e6-76143349bd34" width="100%">
+<img src="https://github.com/user-attachments/assets/a928a91d-8edb-4867-ad23-b0ea29926ea9" width="100%">
 
 6. **Save thumbnail grids** (optional)
    - 5x5 grids from each cluster, for quick visual review
-<img src="https://github.com/user-attachments/assets/30af1dce-77cd-4f1f-9d32-6c38de21d324" width="100%">
+<img src="https://github.com/user-attachments/assets/9370711e-a55b-41df-821a-dd13289c5756" width="100%">
 
 ## Performance
 
