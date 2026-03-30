@@ -680,7 +680,7 @@ def _plot_cluster_thumbnails(cluster_stats: List[Dict[str, Any]], viz_data: Dict
 
     if save_path:
         try:
-            plt.savefig(save_path, dpi=72, bbox_inches='tight', format='png')
+            plt.savefig(save_path, dpi=36, bbox_inches='tight', format='png')
             if show_progress:
                 print(f" - Saved thumbnail grids to: {save_path}")
         except Exception as e:

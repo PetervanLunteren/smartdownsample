@@ -60,7 +60,7 @@ The algorithm has four steps:
 
 3. **Divide-and-conquer scaling** (for large datasets)
 
-   Clustering all images at once requires comparing every pair. For 10,000 images that's 100 million comparisons, and for 1,000,000 images that's 1 trillion. Instead, for datasets larger than 2,000 images, clustering is done in stages:
+   Clustering all images at once requires comparing every pair. For 10,000 images that's 100 million comparisons. Instead, for datasets larger than 2,000 images, `smartdownsample` clusters in stages:
 
    1. Shuffle the images randomly and split them into groups of ~2,000.
    2. Cluster each group independently (much smaller distance matrices).
@@ -78,9 +78,11 @@ The algorithm has four steps:
 
 5. **Save distribution chart** (optional)
    - Vertical bar chart of kept vs. excluded images per cluster
+<img src="https://github.com/user-attachments/assets/1519ff1d-1033-460c-81e6-76143349bd34" width="100%">
 
 6. **Save thumbnail grids** (optional)
    - 5x5 grids from each cluster, for quick visual review
+<img src="https://github.com/user-attachments/assets/30af1dce-77cd-4f1f-9d32-6c38de21d324" width="100%">
 
 ## Performance
 
@@ -97,3 +99,6 @@ Approximate times on an NVIDIA RTX 3080 Ti.
 
 MIT License, see [LICENSE file](https://github.com/PetervanLunteren/smartdownsample/blob/main/LICENSE).
 
+## TODO
+
+- [ ] Take a look at the thumbnail generation. Perhaps we can reduce the size of the images and increase the size of the title. Perhaps a max of 5 * 5 clusters is good enough.
